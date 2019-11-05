@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Default" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Guid>fd529d34-3136-4379-96d3-cbe401dff39c</Guid>
+    <Name>Yellow Alert</Name>
+    <Description>This mod creates a more challenging and realistic gameplay using the yellow alert mechanics in XCom 2. This mod adds yellow alerts to units that are out of sight but close to the action. The following causes triggger the alert.
+
+DetectedNewCorpse:
+DetectedAllyTakingDamage:
+DetectedSound:
+AlertedByYell:
+
+Once in yellow alert, pods are aware of Xcom's presence and run around performing its assigned job or running towards the area of the alert (usually within sight of XCom). No more pods walking around one tile away out of sight, they will jump if battle if close by and their job tells them to. 
+
+Becuase of the added difficulty I recommend using Random Enemy Formations and Random Enemy Movement Mods to spread out the pods on the map.
+
+Thanks to the long war mod I was able to borrow some code thats make a change to the way units patrol once on alert.
+
+Safe to add mid campaign.
+
+This conflicts with Dynamic Pod Activation and differs from DPA in the following ways:
+
+1. DPA has a bug which disables patrolling, yellow alert fixes that bug.
+
+2. DPA uses green alert movement, which only gives them one action point. Yellow alert enables yellow alert patrol movement, which grants unseen enemy units two full moves instead of one, and if they come within your line of sight, they receive an additional scamper move to cover or If they have one action available and you are flanked they will take a shot. 
+
+3. DPA activates only units that are in yellow alert, and their activation determined by the distance from XCOM, not the distance from the alert. DPA activates units by using a trigger to tell them that they have been fired upon, that reveals them and puts them in red alert. But the game is not designed for them to activate in red alert out of sight. Therefore they run at you full speed in open, opening them up to critical flank shots. 
+
+In yellow alert they will follow what the job asks them to. They may run the other way if they are asked to defend. I didn't modify any of the default jobs. The only changes I made was the ability for yellow alerts to occur for unseen enemies and for them to see use yellow alert movement.
+
+Mod Class Overrides:
+XGAIBehavior
+AIUnitData
+XGAIPatrolGroup</Description>
+    <SteamPublishID>0</SteamPublishID>
+    <AssemblyName>YellowAlert</AssemblyName>
+    <RootNamespace>YellowAlert</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Config\XcomAI.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XComEditor.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XComEngine.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XComGame.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XComGameCore.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XComLW_PodManager.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Config\XcomYellowAlert.ini">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\UMS_MissionCore.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Localization\XComGame.int">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ModPreview.jpg">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="ReadMe.txt" />
+    <Content Include="Src\extra_globals.uci">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\HelpersYellowAlert.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\LWPodJobs_DefaultJobSet.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\LWPodJobTemplate.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodJob.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodJob_Flank.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodJob_MoveToLocation.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodManager.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_SeqAct_DropAlert.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_UIScreenListener.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_X2DownloadableContentInfo.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_XGAIBehavior.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_XGAIBehavior_Civilian.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_AIUnitData.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\YellowAlert\Classes\YellowAlert_XGAIPatrolGroup.uc">
+      <SubType>Content</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Config" />
+    <Folder Include="Localization" />
+    <Folder Include="Content" />
+    <Folder Include="Src" />
+    <Folder Include="Src\YellowAlert" />
+    <Folder Include="Src\YellowAlert\Classes" />
+  </ItemGroup>
+  <Import Project="$(MSBuildLocalExtensionPath)\XCOM2.targets" />
+</Project>
