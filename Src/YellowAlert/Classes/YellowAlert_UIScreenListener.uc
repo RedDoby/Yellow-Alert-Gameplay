@@ -550,11 +550,8 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			{
 			bFoundMovement = True;
 			`Log(GetFuncName() $ ": Found a Move for this Group");
-			}
-		}
-		if (bFoundMovement == True)
-		{
 			break;
+			}
 		}
 	}
 	for (j = 0; j < LivingMembers.Length; ++j)
