@@ -25,7 +25,6 @@ struct PodJob
 	var bool AllowYellowAlert;
 	var bool RequireObjectiveComplete;
 	var bool RequireEvacZoneSeen;
-	var bool AllowEvacZoneSeen;
 	var bool Unlimited;
 	var float RandomChance;
 	var Name LeaderAIJob;
@@ -492,14 +491,6 @@ function bool PodJobIsValidForMission(PodJob Job)
 	{
 		`Log("Excluding job "$Job.FriendlyName$" due to Evac Zone not seen");
 		return false;
-	}
-	else if (!Job.AllowEvacZoneSeen && EvacZoneSpotted)
-	{
-		if(!Job.RequireEvacZoneSeen)
-		{
-			`Log("Excluding job "$Job.FriendlyName$" due to Evac Zone seen");
-			return false;
-		}
 	}
 
 	if (Job.MinEngagedAI >= 0 && AIPlayerData.StatsData.NumEngagedAI < Job.MinEngagedAI)

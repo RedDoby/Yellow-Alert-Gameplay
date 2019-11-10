@@ -95,9 +95,6 @@ XGAIPatrolGroup</Description>
     <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodManager.uc">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Src\YellowAlert\Classes\YellowAlert_SeqAct_DropAlert.uc">
-      <SubType>Content</SubType>
-    </Content>
     <Content Include="Src\YellowAlert\Classes\YellowAlert_UIScreenListener.uc">
       <SubType>Content</SubType>
     </Content>

@@ -537,27 +537,24 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
     }
 
 	AIPlayer = XGAIPlayer(XGBattle_SP(`BATTLE).GetAIPlayer());
-	AIData = XComGameState_AIPlayerData(`XCOMHISTORY.GetGameStateForObjectID(AIPlayer.GetAIDataID()));
+	AIData = XComGameState_AIPlayerData(History.GetGameStateForObjectID(AIPlayer.GetAIDataID()));
 
 	// Walk backwards through history to see if any member of this group took a standard movement action since the last turn
 	//Then we will count the number of tiles moved for each member, if they didn't take a full movement then they will have a chance to get an extra action point
-	If (!IsReinforcementGroup)//Skip reinforcements, they don't move prior to scampering
+	foreach History.IterateContextsByClassType( class'XComGameStateContext_Ability', AbilityContext, , true, AIData.m_iLastEndTurnHistoryIndex)
 	{
-		foreach History.IterateContextsByClassType( class'XComGameStateContext_Ability', AbilityContext, , true, AIData.m_iLastEndTurnHistoryIndex)
-		{
-			for (j = 0; j < LivingMembers.Length; ++j)
-			{	
-				Member = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[j]));
-				if( AbilityContext.InputContext.AbilityTemplateName == 'StandardMove' && AbilityContext.InputContext.SourceObject.ObjectID == Member.ObjectID)
-				{
-				bFoundMovement = True;
-				`Log(GetFuncName() $ ": Found a Move for this Group");
-				}
-			}
-			if (bFoundMovement == True)
+		for (j = 0; j < LivingMembers.Length; ++j)
+		{	
+			Member = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[j]));
+			if( AbilityContext.InputContext.AbilityTemplateName == 'StandardMove' && AbilityContext.InputContext.SourceObject.ObjectID == Member.ObjectID)
 			{
-				break;
+			bFoundMovement = True;
+			`Log(GetFuncName() $ ": Found a Move for this Group");
 			}
+		}
+		if (bFoundMovement == True)
+		{
+			break;
 		}
 	}
 	for (j = 0; j < LivingMembers.Length; ++j)
