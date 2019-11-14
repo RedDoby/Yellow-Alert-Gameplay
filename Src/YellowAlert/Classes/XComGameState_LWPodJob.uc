@@ -166,21 +166,74 @@ function Vector SetAlertAtLocation(Vector Location, XComGameState_AIGroup Group,
         if (Unit.IsAlive() && AIUnitDataID > 0)
         {
             AIData = XComGameState_AIUnitData(NewGameState.CreateStateObject(class'XComGameState_AIUnitData', AIUnitDataID));
-			
+			RemoveAlertsFromGroup(Group, NewGameState);//Remove existing alerts from group so that they don't use those
+
             if (AIData.AddAlertData(UnitRef.ObjectID, AlertCause, AlertInfo, NewGameState, AlertTag))
             {
 				NewGameState.AddStateObject(AIData);
-				class'XComGameState_LWPodManager'.static.RemoveAlertFromGroup(Group, NewGameState, Eac_UNUSED_3, True);//Remove existing alerts from group so that they don't use those
 				`Log(GetFuncName() $ "X: "$AlertInfo.AlertTileLocation.X$" Y: "$AlertInfo.AlertTileLocation.Y$" Z: "$AlertInfo.AlertTileLocation.Z$" for group# "$Group.ObjectID);
             }
             else
             {
                 NewGameState.PurgeGameStateForObjectID(AIData.ObjectID);
             }
+			//only need to try to add the alert data to the first alive member, class aiunitdata adds the alert to the remaining members
+			break;
         }
     }
 
 	return Location;
+}
+
+// Remove any throttling or pod job alerts from all members of this group.
+static function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState NewGameState)
+{
+	local XComGameStateHistory History;
+	local XComGameState_AIUnitData AIUnitData;
+	local XComGameState_Player PlayerState;
+	local int AIUnitDataID;
+	local XComGameState_Unit Unit;
+	local array<int> LivingMembers;
+	local int UnitIdx, AlertIdx, CurrentTurn/*, MaxTurn*/;
+	local bool FoundAlertDataToDelete;
+
+	History = `XCOMHISTORY;
+	Group.GetLivingMembers(LivingMembers);
+	
+	Unit = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[0]));
+	PlayerState = XComGameState_Player(History.GetGameStateForObjectID(Unit.ControllingPlayer.ObjectID));
+	CurrentTurn = PlayerState.PlayerTurnCount;
+	//MaxTurn = SkipCurrentTurn ? CurrentTurn-1 : CurrentTurn;
+	for (UnitIdx = 0; UnitIdx < LivingMembers.Length; ++UnitIdx)
+	{
+		Unit = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[UnitIdx]));
+		AIUnitDataID = Unit.GetAIUnitDataID();
+		if (AIUnitDataID > 0)
+		{
+			NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Yellow Alert Pod Manager Looking for Old Alert Data to Delete");
+			AIUnitData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', AIUnitDataID));
+			for (AlertIdx = AIUnitData.m_arrAlertData.Length - 1; AlertIdx >= 0; --AlertIdx)
+			{
+				if (AIUnitData.m_arrAlertData[AlertIdx].AlertCause == Eac_ThrottlingBeacon ||
+					AIUnitData.m_arrAlertData[AlertIdx].AlertCause == Eac_UNUSED_3 /*&& 
+					AIUnitData.m_arrAlertData[AlertIdx].PlayerTurn <= MaxTurn*/)
+				{
+					AIUnitData.m_arrAlertData.Remove(AlertIdx, 1);
+					`Log("Pod Job Manager Removing Alert Data from unit# "$Unit.ObjectID$" on turn "$CurrentTurn);
+					FoundAlertDataToDelete = true;
+				}
+			}
+			if(FoundAlertDataToDelete)
+			{
+				`TACTICALRULES.SubmitGameState(NewGameState);
+			}
+			else
+			{
+				NewGameState.PurgeGameStateForObjectID(AIUnitData.ObjectID);
+				History.CleanupPendingGameState(NewGameState);
+			} 
+		}
+	}
 }
 
 function name GetMyTemplateName()

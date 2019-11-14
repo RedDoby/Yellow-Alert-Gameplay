@@ -278,7 +278,7 @@ function EventListenerReturn OnAbilityActivated(Object EventData, Object EventSo
 					if( EnemyInSoundRangeUnitState.ObjectID != ActivatedAbilityStateContext.InputContext.PrimaryTarget.ObjectID )
 					{
 						// this unit just overheard the sound
-						ThisUnitState.UnitAGainsKnowledgeOfUnitB(EnemyInSoundRangeUnitState, SourceUnitState, GameState, eAC_DetectedSound, false);
+						ThisUnitState.UnitAGainsKnowledgeOfUnitBFromLocation(EnemyInSoundRangeUnitState, SourceUnitState, GameState, eAC_DetectedSound, false, SoundTileLocation);
 					}
 				}
 			}
@@ -699,7 +699,7 @@ function EventListenerReturn CheckSeesAlertedAlliesAlert(Object EventData, Objec
 	//Check to see if this mission starts in yellow alert, for these types of missions it won't be useful to use this alert
 	if( `TACTICALMISSIONMGR.ActiveMission.AliensAlerted )
 	{
-		//`LogAI(GetFuncName() $ " Aborting! Mission starts in yellow alert");
+		//`logAI(GetFuncName() $ " Aborting! Mission starts in yellow alert");
 		Tuple.Data[2].i = eAC_None;//Set the alert to none so it doesn't get recorded again
 		return ELR_NoInterrupt;
 	}
@@ -707,7 +707,7 @@ function EventListenerReturn CheckSeesAlertedAlliesAlert(Object EventData, Objec
 	//Check for Chosen, we want to skip those because they can alert the entire map
 	if	(UnitB.IsChosen())
 	{	
-		//`LogAI(GetFuncName() $ " Aborting! UnitB is: " $ UnitB.GetMyTemplate().CharacterGroupName $ " and we don't want Chosen to create these alerts");
+		//`logAI(GetFuncName() $ " Aborting! UnitB is: " $ UnitB.GetMyTemplate().CharacterGroupName $ " and we don't want Chosen to create these alerts");
 		Tuple.Data[2].i = eAC_None;
 		return ELR_NoInterrupt;
 	}
@@ -715,7 +715,7 @@ function EventListenerReturn CheckSeesAlertedAlliesAlert(Object EventData, Objec
 	//check if units are in the same pod, we want to skip those
 	if(UnitAGroupID == UnitBGroupID)
 	{
-		//`LogAI(GetFuncName() $ " Aborting! Unit: " $ UnitA.GetMyTemplateName() $ "_" $ UnitA.ObjectID $ "is in the same group as unit: "$ UnitB.GetMyTemplateName() $ "_" $ UnitB.ObjectID);
+		//`logAI(GetFuncName() $ " Aborting! Unit: " $ UnitA.GetMyTemplateName() $ "_" $ UnitA.ObjectID $ "is in the same group as unit: "$ UnitB.GetMyTemplateName() $ "_" $ UnitB.ObjectID);
 		Tuple.Data[2].i = eAC_None;//Set the alert to none so it doesn't get recorded again
 		return ELR_NoInterrupt;
 	}
@@ -726,7 +726,7 @@ function EventListenerReturn CheckSeesAlertedAlliesAlert(Object EventData, Objec
 		if( AllyUnitsSeen[Index].AlertUnitID == UnitA.ObjectID && //check if this unit has alert data
 			AllyUnitsSeen[Index].AlertSourceGroupID == UnitBGroupID )//check if this group has been seen by this unit
 		{
-			//`LogAI(GetFuncName() $ " Aborting! Unit: " $ UnitA.GetMyTemplateName() $ "_" $ UnitA.ObjectID $ "has already seen Group: "$ UnitBGroupID);
+			//`logAI(GetFuncName() $ " Aborting! Unit: " $ UnitA.GetMyTemplateName() $ "_" $ UnitA.ObjectID $ "has already seen Group: "$ UnitBGroupID);
 			Tuple.Data[2].i = eAC_None;//Set the alert to none so it doesn't get recorded again
 			return ELR_NoInterrupt;
 		}
@@ -912,6 +912,12 @@ static function EventListenerReturn SetPodManagerAlert(Object EventData, Object 
 	local XComGameState_Ability Ability;
 	local XComGameState NewGameState;
 	local XComGameState_LWPodManager NewPodManager;
+
+	// If we're in alert level red we no longer care about activated abilities
+	if (`LWPODMGR.AlertLevel == `ALERT_LEVEL_RED)
+	{
+		return ELR_NoInterrupt;
+	}
 
 	Ability = XComGameState_Ability(EventData);
 	if (Ability != none && 
@@ -1121,7 +1127,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	local XComGameStateHistory History;
 	local int i, iDataID, PathIndex, SightRadiusUnitsSq;
 	local XComGameStateContext_Ability MoveContext;
-	local XComGameState NewGameState;
+	local XComGameState OtherGameState, NewGameState;
 	local XComGameState_AIUnitData AIUnitData, NewAIUnitData;
 	local AlertAbilityInfo AlertInfo;
 	local TTile TestTile;
@@ -1129,22 +1135,45 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	local GameRulesCache_VisibilityInfo OutVisInfo;
 	local XComGameState_LWPodManager PodManager, NewPodManager;
 
+	History = `XCOMHISTORY;
+	MovedUnit = XComGameState_Unit(EventData);
+	MovedUnitPlayer = XComGameState_Player(History.GetGameStateForObjectID(MovedUnit.ControllingPlayer.ObjectID));
+	//Looking for alien units only
+	if( MovedUnitPlayer.TeamFlag != eTeam_Alien )
+	{
+		return ELR_NoInterrupt;
+	}
+
+	PodManager = `LWPODMGR;
 	EvacZone = class'XComGameState_EvacZone'.static.GetEvacZone(eTeam_XCom);
+	//If the evac zone was already spotted, check to see if the evac zone is no longer there or has moved and the aliens can see that
+	if(PodManager.EvacZoneSpotted)
+	{
+		if (class'X2TacticalVisibilityHelpers'.static.CanUnitSeeLocation(MovedUnit.ObjectID, PodManager.EvacZoneLocation))
+		{
+			//If evac zone is no longer where it used to be let's reset the stored pod manager variables
+			if (PodManager.EvacZoneLocation != EvacZone.CenterLocation || EvacZone == None) 
+			{	
+				OtherGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState(" Yellow Alert Pod Manager Clearing location of Evac Zone.");
+				NewPodManager = XComGameState_LWPodManager(OtherGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
+				NewPodManager.EvacZoneSpotted = false;
+				NewPodManager.EvacZoneLocation.X = 0;
+				NewPodManager.EvacZoneLocation.Y = 0;
+				NewPodManager.EvacZoneLocation.Z = 0;
+				`TACTICALRULES.SubmitGameState(OtherGameState);
+				`Log(GetFuncName()@"Clearing location of Evac Zone.");
+			}
+		}
+	}
+	//No Evac zone active, no need to check further for visuals on Evac Zone
 	if( EvacZone == None )
 	{
 		`Log(GetFuncName()@"failed - No Evac Zone found.");
 		return ELR_NoInterrupt;
 	}
 
-	History = `XCOMHISTORY;
-	MovedUnit = XComGameState_Unit(EventData);
-	MovedUnitPlayer = XComGameState_Player(History.GetGameStateForObjectID(MovedUnit.ControllingPlayer.ObjectID));
-	if( MovedUnitPlayer.TeamFlag != eTeam_Alien )
-	{
-		return ELR_NoInterrupt;
-	}
-	EvacZoneSpotted = false;
-		
+	//Begin checks for an existing evac zone
+	EvacZoneSpotted = false;	
 	if (class'X2TacticalVisibilityHelpers'.static.CanUnitSeeLocation(MovedUnit.ObjectID, EvacZone.CenterLocation))
 	{
 		EvacZoneSpotted = true;
@@ -1206,11 +1235,11 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 		NewAIUnitData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', iDataID));
 
 		// Update Pod Manager Variables for tracking Evac Zone
-		PodManager = `LWPODMGR;
 		NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
-		if(PodManager.EvacZoneSpotted == false)
+		if(!PodManager.EvacZoneSpotted)
 		{
 			NewPodManager.EvacZoneSpotted = true;
+			`Log(GetFuncName()@"Updating location of Evac Zone.");
 		}
 		if(PodManager.EvacZoneLocation != AlertInfo.AlertTileLocation)
 		{
@@ -1218,12 +1247,18 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 		}
 		if( NewAIUnitData.AddAlertData(MovedUnit.ObjectID, eAC_SeesSmoke, AlertInfo, NewGameState) )
 		{
-			`TACTICALRULES.SubmitGameState(NewGameState);
 			`Log(GetFuncName()@" successfully added alert data for Evac Zone @ location "$AlertInfo.AlertTileLocation.X$", "$AlertInfo.AlertTileLocation.Y);
 		}
 		else
 		{
 			NewGameState.PurgeGameStateForObjectID(NewAIUnitData.ObjectID);
+		}
+		if(NewGameState.GetNumGameStateObjects() > 0)
+		{
+			`TACTICALRULES.SubmitGameState(NewGameState);
+		}
+		else
+		{
 			History.CleanupPendingGameState(NewGameState);
 		}
 	}

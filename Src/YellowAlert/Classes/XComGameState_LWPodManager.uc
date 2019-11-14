@@ -359,23 +359,6 @@ function UpdateJobList(XComGameState_AIPlayerData AIPlayerData, out array<StateO
 
 	History = `XCOMHISTORY;
 
-	UnassignedPods.Length = 0;
-	for (i = 0; i < AIPlayerData.GroupList.Length; ++i)
-	{
-		Group = XComGameState_AIGroup(History.GetGameStateForObjectID(AIPlayerData.GroupList[i].ObjectID));
-		LivingMembers.Length = 0;
-		Group.GetLivingMembers(LivingMembers);
-
-		if (LivingMembers.Length == 0 || Group.TeamName != ETeam_Alien)//Don't want to assign jobs to raider factions, resistance, or lost
-			continue;
-
-		// Add any pod that is not engaged and doesn't have a job
-		if (!Group.IsEngaged() && !PodHasJob(Group))
-		{
-			UnassignedPods.AddItem(Group.GetReference());
-		}
-	}
-
 	// Go over all our existing jobs. Any job on a pod that has since activated should be removed,
 	// and pods that have entered yellow alert need to be re-examined to see if they can keep this
 	// job when entering yellow.
@@ -405,6 +388,30 @@ function UpdateJobList(XComGameState_AIPlayerData AIPlayerData, out array<StateO
 			// across alert, remove it.
 			RemoveActiveJob(i);
 			--i;
+		}
+		else if (!EvacZoneSpotted && Job.GetMyTemplateName() == 'GuardEvacZone')
+		{
+			// If the Evac zone spotted flag is now false then this means the evac zone location is not known anymore
+			`log("Yellow Alert Pod Manager Removing All active Guard Evac Zone jobs due to Evac Zone location not known");
+			RemoveActiveJob(i);
+			--i;
+		}
+	}
+
+	UnassignedPods.Length = 0;
+	for (i = 0; i < AIPlayerData.GroupList.Length; ++i)
+	{
+		Group = XComGameState_AIGroup(History.GetGameStateForObjectID(AIPlayerData.GroupList[i].ObjectID));
+		LivingMembers.Length = 0;
+		Group.GetLivingMembers(LivingMembers);
+
+		if (LivingMembers.Length == 0 || Group.TeamName != ETeam_Alien)//Don't want to assign jobs to raider factions, resistance, or lost
+			continue;
+
+		// Add any pod that is not engaged and doesn't have a job
+		if (!Group.IsEngaged() && !PodHasJob(Group))
+		{
+			UnassignedPods.AddItem(Group.GetReference());
 		}
 	}
 }
@@ -448,31 +455,25 @@ function bool PodJobIsValidForMission(PodJob Job)
 
 	if (Job.ExcludedMissionFamilies.Find(MissionFamily) != -1)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to mission family exclusion");
+		//`log("Excluding job "$Job.FriendlyName$" due to mission family exclusion");
 		return false;
 	}
 
 	if (Job.Difficulties.Length > 0 && Job.Difficulties.Find(`TACTICALDIFFICULTYSETTING) == -1)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to difficulty");
+		//`log("Excluding job "$Job.FriendlyName$" due to difficulty");
 		return false;
 	}
 
 	if (Job.IncludedMissionFamilies.Length > 0 && Job.IncludedMissionFamilies.Find(MissionFamily) == -1)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to mission family inclusion");
+		//`log("Excluding job "$Job.FriendlyName$" due to mission family inclusion");
 		return false;
 	}
 
 	if (Job.MinTurn >= 0 && TurnCount < Job.MinTurn)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to min turn count");
-		return false;
-	}
-
-	if (Job.MinTurn >= 0 && TurnCount < Job.MinTurn)
-	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to min turn count");
+		`log("Excluding job "$Job.FriendlyName$" due to min turn count");
 		return false;
 	}
 
@@ -495,13 +496,13 @@ function bool PodJobIsValidForMission(PodJob Job)
 
 	if (Job.MinEngagedAI >= 0 && AIPlayerData.StatsData.NumEngagedAI < Job.MinEngagedAI)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to minimum engaged AI count");
+		//`log("Excluding job "$Job.FriendlyName$" due to minimum engaged AI count");
 		return false;
 	}
 
 	if (Job.MaxEngagedAI >= 0 && AIPlayerData.StatsData.NumEngagedAI > Job.MaxEngagedAI)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to maximum engaged AI count");
+		//`log("Excluding job "$Job.FriendlyName$" due to maximum engaged AI count");
 		return false;
 	}
 
@@ -516,18 +517,18 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	local int i;
 	local float Roll;
 
-	//`Log("Considering job " $ Job.FriendlyName $ " for pod " $ Group.ObjectID);
+	`log("Considering job " $ Job.FriendlyName $ " for pod " $ Group.ObjectID);
 
 	Group.GetLivingMembers(Members);
 	if (Job.MinSize >= 0 && Members.Length < Job.MinSize)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to minimum member count");
+		//`log("Excluding job "$Job.FriendlyName$" due to minimum member count");
 		return false;
 	}
 
 	if (Job.MaxSize >= 0 && Members.Length > Job.MaxSize)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to maximum member count");
+		//`log("Excluding job "$Job.FriendlyName$" due to maximum member count");
 		return false;
 	}
 
@@ -536,7 +537,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (Group.MyEncounterZoneWidth >= 10)
 		{
-			//`Log("Excluding job "$Job.FriendlyName$" due to guard pod requirement");
+			`log("Excluding job "$Job.FriendlyName$" due to guard pod requirement");
 			return false;
 		}
 	} 
@@ -544,7 +545,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (Group.MyEncounterZoneWidth < 10)
 		{
-			//`Log("Excluding job "$Job.FriendlyName$" due to non-guard pod requirement");
+			`log("Excluding job "$Job.FriendlyName$" due to non-guard pod requirement");
 			return false;
 		}
 	}
@@ -554,7 +555,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (!GroupIsInYellowAlert(Group))
 		{
-			//`Log("Excluding job "$Job.FriendlyName$" due to yellow alert requirement");
+			`log("Excluding job "$Job.FriendlyName$" due to yellow alert requirement");
 			return false;
 		}
 	}
@@ -562,7 +563,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (GroupIsInYellowAlert(Group))
 		{
-			//`Log("Excluding job "$Job.FriendlyName$" due to green alert requirement");
+			`log("Excluding job "$Job.FriendlyName$" due to green alert requirement");
 			return false;
 		}
 	}
@@ -570,13 +571,13 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	if (AlertLevel == `ALERT_LEVEL_GREEN && !GroupIsInYellowAlert(Group))
 	{
 		// If we're still in green alert, don't assign any green pods jobs.
-		//`Log("Excluding job "$Job.FriendlyName$" due to global alert level green");
+		`log("Excluding job "$Job.FriendlyName$" due to global alert level green");
 		return false;
 	}
 
 	if (Job.EncounterID != '' && Job.EncounterID != Group.EncounterID)
 	{
-		//`Log("Excluding job "$Job.FriendlyName$" due to encounter ID requirement");
+		`log("Excluding job "$Job.FriendlyName$" due to encounter ID requirement");
 		return false;
 	}
 
@@ -633,7 +634,7 @@ function XComGameState_LWPodJob InitializeJob(Name JobName, int JobID, XComGameS
 	JobObj = Template.CreateInstance(NewGameState);
 	AlertCause = MissionJobs[JobID].AlertCause >= 0 ? MissionJobs[JobID].AlertCause : eAC_UNUSED_3;
 	//Yellow Alert Added - don't want throttling beacons to interfere with job alerts, especially for green alert pods
-	RemoveAlertFromGroup(Group, NewGameState, Eac_ThrottlingBeacon, False);
+	//RemoveAlertFromGroup(Group, NewGameState, Eac_ThrottlingBeacon, False);
 	JobObj.InitJob(Template, Group, JobID, AlertCause, MissionJobs[JobID].AlertTag, NewGameState);
 	ActiveJobs.AddItem(JobObj.GetReference());
 
@@ -773,50 +774,6 @@ function AssignPodJobs(XComGameState_AIPlayerData AIPlayerData, array<StateObjec
 	}
 }
 
-// Remove any alerts from all members of this group. Use skip Current turn to not remove alerts for the current turn.
-static function RemoveAlertFromGroup(XComGameState_AIGroup Group, XComGameState NewGameState, EAlertCause AlertCause, bool SkipCurrentTurn)
-{
-	local XComGameStateHistory History;
-	local XComGameState_AIUnitData AIUnitData;
-	local XComGameState_Player PlayerState;
-	local int AIUnitDataID;
-	local XComGameState_Unit Unit;
-	local array<int> LivingMembers;
-	local int UnitIdx, AlertIdx, CurrentTurn, MaxTurn;
-
-	History = `XCOMHISTORY;
-	Group.GetLivingMembers(LivingMembers);
-	
-	Unit = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[0]));
-	PlayerState = XComGameState_Player(History.GetGameStateForObjectID(Unit.ControllingPlayer.ObjectID));
-	CurrentTurn = PlayerState.PlayerTurnCount;
-	MaxTurn = SkipCurrentTurn ? CurrentTurn-1 : CurrentTurn;
-	for (UnitIdx = 0; UnitIdx < LivingMembers.Length; ++UnitIdx)
-	{
-		Unit = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[UnitIdx]));
-		AIUnitDataID = Unit.GetAIUnitDataID();
-		if (AIUnitDataID > 0)
-		{
-			AIUnitData = XComGameState_AIUnitData(NewGameState.GetGameStateForObjectID(AIUnitDataID));
-			if (AIUnitData == none)
-			{
-				AIUnitData = XComGameState_AIUnitData(NewGameState.CreateStateObject(class'XComGameState_AIUnitData', 
-							AIUnitDataID));
-				NewGameState.AddStateObject(AIUnitData);
-			}
-			for (AlertIdx = AIUnitData.m_arrAlertData.Length - 1; AlertIdx >= 0; --AlertIdx)
-			{
-				if (AIUnitData.m_arrAlertData[AlertIdx].AlertCause == AlertCause && 
-					AIUnitData.m_arrAlertData[AlertIdx].PlayerTurn <= MaxTurn)
-				{
-					AIUnitData.m_arrAlertData.Remove(AlertIdx, 1);
-					`Log("Pod Job Manager Removing "$AlertCause$" from unit# "$Unit.ObjectID$" on turn "$CurrentTurn);
-				}
-			}
-		}
-	}
-}
-
 function XComGameState_LWPodJob FindPodJobForPod(XComGameState_AIGroup Group)
 {
 	local int i;
@@ -850,8 +807,6 @@ function bool PodHasJob(XComGameState_AIGroup Group)
 }
 
 /// DEBUGGING
-
-
 function DrawDebugLabel(Canvas kCanvas)
 {
 	local String DebugString;

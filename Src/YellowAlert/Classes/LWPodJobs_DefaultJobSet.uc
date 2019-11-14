@@ -40,7 +40,7 @@ static function LWPodJobTemplate MakeSimpleJobTemplate(name TemplateName,
 }
 
 // Defend Evac Zone job: Move to the XCom Evac Zone.
-// At the time I am making not making this job permanent
+// Make the job permanent since there is only one group allowed at a time for this job
 function XComGameState_LWPodJob CreateGuardEvacZoneJob(XComGameState NewGameState)
 {
      local XComGameState_LWPodJob_MoveToLocation Job;
@@ -48,6 +48,7 @@ function XComGameState_LWPodJob CreateGuardEvacZoneJob(XComGameState NewGameStat
     Job = XComGameState_LWPodJob_MoveToLocation(NewGameState.CreateStateObject(class'XComGameState_LWPodJob_MoveToLocation'));
     NewGameState.AddStateObject(Job);
 	Job.Location = `XWORLD.GetPositionFromTileCoordinates(`LWPODMGR.EvacZoneLocation);
+	Job.KeepJobAfterReachingDestination = true;
     return Job;
 }
 
