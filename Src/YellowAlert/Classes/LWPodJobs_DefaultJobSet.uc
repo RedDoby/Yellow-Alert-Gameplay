@@ -25,6 +25,7 @@ static function array<X2DataTemplate> CreateTemplates()
     Templates.AddItem(MakeSimpleJobTemplate('Block', CreateBlockJob, BlockLocationCallback)); 
     Templates.AddItem(MakeSimpleJobTemplate('Flank', CreateFlankJob, none));
 	Templates.AddItem(MakeSimpleJobTemplate('GuardEvacZone', CreateGuardEvacZoneJob, EvacZoneLocationCallback));
+	Templates.AddItem(MakeSimpleJobTemplate('Scout', CreateScoutJob, none));
     return Templates;
 }
 
@@ -255,5 +256,12 @@ function XComGameState_LWPodJob CreateFlankJob(XComGameState NewGameState)
     Job = XComGameState_LWPodJob_Flank(NewGameState.CreateStateObject(class'XComGameState_LWPodJob_Flank'));
     NewGameState.AddStateObject(Job);
     // Flank class handles location setup and update internally.
+    return Job;
+}
+
+function XComGameState_LWPodJob CreateScoutJob(XComGameState NewGameState)
+{
+	local XComGameState_LWPodJob_Scout Job;
+    Job = XComGameState_LWPodJob_Scout(NewGameState.CreateNewStateObject(class'XComGameState_LWPodJob_Scout'));
     return Job;
 }

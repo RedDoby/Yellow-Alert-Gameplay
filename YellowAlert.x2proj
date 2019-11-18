@@ -92,6 +92,9 @@ XGAIPatrolGroup</Description>
     <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodJob_MoveToLocation.uc">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodJob_Scout.uc">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Src\YellowAlert\Classes\XComGameState_LWPodManager.uc">
       <SubType>Content</SubType>
     </Content>

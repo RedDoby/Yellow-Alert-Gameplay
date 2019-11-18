@@ -38,10 +38,9 @@ function bool ProcessTurn(XComGameState_LWPodManager PodMgr, XComGameState NewGa
     if (Template.GetNewDestination != none)
     {
         NewDestination = Template.GetNewDestination(self, NewGameState);
-
-        if (Location != NewDestination)
-        {
-            Group = XComGameState_AIGroup(`XCOMHISTORY.GetGameStateForObjectID(GroupRef.ObjectID));
+		Group = XComGameState_AIGroup(`XCOMHISTORY.GetGameStateForObjectID(GroupRef.ObjectID));
+        if (Location != AdjustLocation(NewDestination, Group))
+        {   
             Location = SetAlertAtLocation(NewDestination, Group, NewGameState);
         }
     }
@@ -64,9 +63,22 @@ function bool HasReachedDestination()
 
 function bool ShouldContinueJob(XComGameState NewGameState)
 {
+	local XComGameState_LWPodManager PodMgr, NewPodMgr;
+
     // Have we reached our destination?
     if (HasReachedDestination())
     {
+		// Mark that XCom's position has been investigated and nothing was found
+		if(GetMyTemplateName() == 'Intercept')
+		{
+			PodMgr = `LWPODMGR;
+			NewPodMgr = XComGameState_LWPodManager(NewGameState.GetGameStateForObjectID(PodMgr.ObjectID));
+			if (NewPodMgr != none)
+			{
+				PodMgr = NewPodMgr;
+			}
+			PodMgr.XComPositionInvestigatedTurn = class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount;
+		}
         // We're here!
         return KeepJobAfterReachingDestination;
     }

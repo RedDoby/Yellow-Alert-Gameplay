@@ -78,18 +78,29 @@ function bool HasJobExpired()
 
 // Given the target location 'Loc', adjust it until it's a place this group can actually
 // reach, returning the new, adjusted vector.
+// Yellow alert - all of this code tht is commented out is redundant since the vanilla code already determines the correct pathing to the alert location
+// Plus it shortens the movement range for units in yellow alert, I want them to take their full dash movement
 function static Vector AdjustLocation(Vector Loc, XComGameState_AIGroup Group)
 {
 	//local XComGameState_Unit LeaderState;
 	//local XGUnit Visualizer;
 	//local XComWorldData WorldData;
 	//local TTile TileDest;
+	local XComWorldData World;
+	local TTile Tile;
 //
-	//WorldData = `XWORLD;
+	World = `XWORLD;
 //
 	//// Make sure the target location is on the map. Just because it's on the map
 	//// doesn't mean we can path there, though...
 	Loc = `XWORLD.FindClosestValidLocation(Loc, false, false);
+
+	Tile = World.GetTileCoordinatesFromPosition(Loc);
+			if (World.IsTileOutOfRange(Tile))
+			{
+				World.ClampTile(Tile);
+				Loc = World.GetPositionFromTileCoordinates(Tile);
+			}
 //
 	//// Lookup the leader
 	//LeaderState = Group.GetGroupLeader();
@@ -158,27 +169,23 @@ function Vector SetAlertAtLocation(Vector Location, XComGameState_AIGroup Group,
     AlertInfo.AlertUnitSourceID = 0;
     AlertInfo.AnalyzingHistoryIndex = History.GetCurrentHistoryIndex();
 
+	RemoveAlertsFromGroup(Group, NewGameState);//Remove existing pog manager and throttling alerts from group so that they don't use those
+
     foreach Group.m_arrMembers(UnitRef)
     {
         Unit = XComGameState_Unit(History.GetGameStateForObjectID(UnitRef.ObjectID));
         AIUnitDataID = Unit.GetAIUnitDataID();
-
         if (Unit.IsAlive() && AIUnitDataID > 0)
         {
-            AIData = XComGameState_AIUnitData(NewGameState.CreateStateObject(class'XComGameState_AIUnitData', AIUnitDataID));
-			RemoveAlertsFromGroup(Group, NewGameState);//Remove existing alerts from group so that they don't use those
-
+            AIData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', AIUnitDataID));
             if (AIData.AddAlertData(UnitRef.ObjectID, AlertCause, AlertInfo, NewGameState, AlertTag))
             {
-				NewGameState.AddStateObject(AIData);
 				`Log(GetFuncName() $ "X: "$AlertInfo.AlertTileLocation.X$" Y: "$AlertInfo.AlertTileLocation.Y$" Z: "$AlertInfo.AlertTileLocation.Z$" for group# "$Group.ObjectID);
             }
             else
             {
                 NewGameState.PurgeGameStateForObjectID(AIData.ObjectID);
             }
-			//only need to try to add the alert data to the first alive member, class aiunitdata adds the alert to the remaining members
-			break;
         }
     }
 
@@ -186,7 +193,7 @@ function Vector SetAlertAtLocation(Vector Location, XComGameState_AIGroup Group,
 }
 
 // Remove any throttling or pod job alerts from all members of this group.
-static function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState NewGameState)
+function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState NewGameState)
 {
 	local XComGameStateHistory History;
 	local XComGameState_AIUnitData AIUnitData;
@@ -210,7 +217,6 @@ static function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState
 		AIUnitDataID = Unit.GetAIUnitDataID();
 		if (AIUnitDataID > 0)
 		{
-			NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Yellow Alert Pod Manager Looking for Old Alert Data to Delete");
 			AIUnitData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', AIUnitDataID));
 			for (AlertIdx = AIUnitData.m_arrAlertData.Length - 1; AlertIdx >= 0; --AlertIdx)
 			{
@@ -223,14 +229,9 @@ static function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState
 					FoundAlertDataToDelete = true;
 				}
 			}
-			if(FoundAlertDataToDelete)
-			{
-				`TACTICALRULES.SubmitGameState(NewGameState);
-			}
-			else
+			if(!FoundAlertDataToDelete)
 			{
 				NewGameState.PurgeGameStateForObjectID(AIUnitData.ObjectID);
-				History.CleanupPendingGameState(NewGameState);
 			} 
 		}
 	}

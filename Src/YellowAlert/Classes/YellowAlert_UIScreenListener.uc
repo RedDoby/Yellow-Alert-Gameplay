@@ -927,7 +927,6 @@ static function EventListenerReturn SetPodManagerAlert(Object EventData, Object 
 	{
 		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("PodManager: RedAlert");
 		NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', `LWPODMGR.ObjectID));
-		NewGameState.AddStateObject(NewPodManager);
 		NewPodManager.AlertLevel = (Ability.GetMyTemplateName() == 'RedAlert') ? `ALERT_LEVEL_RED : `ALERT_LEVEL_YELLOW;
 		`TACTICALRULES.SubmitGameState(NewGameState);
 	}
@@ -1130,7 +1129,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	local XComGameState OtherGameState, NewGameState;
 	local XComGameState_AIUnitData AIUnitData, NewAIUnitData;
 	local AlertAbilityInfo AlertInfo;
-	local TTile TestTile;
+	local TTile TestTile, BlankTile;
 	local bool EvacZoneSpotted, bIsInSightRadius;
 	local GameRulesCache_VisibilityInfo OutVisInfo;
 	local XComGameState_LWPodManager PodManager, NewPodManager;
@@ -1157,9 +1156,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 				OtherGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState(" Yellow Alert Pod Manager Clearing location of Evac Zone.");
 				NewPodManager = XComGameState_LWPodManager(OtherGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
 				NewPodManager.EvacZoneSpotted = false;
-				NewPodManager.EvacZoneLocation.X = 0;
-				NewPodManager.EvacZoneLocation.Y = 0;
-				NewPodManager.EvacZoneLocation.Z = 0;
+				NewPodManager.EvacZoneLocation = BlankTile;
 				`TACTICALRULES.SubmitGameState(OtherGameState);
 				`Log(GetFuncName()@"Clearing location of Evac Zone.");
 			}
@@ -1235,16 +1232,14 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 		NewAIUnitData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', iDataID));
 
 		// Update Pod Manager Variables for tracking Evac Zone
-		NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
+		
 		if(!PodManager.EvacZoneSpotted)
 		{
+			NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
 			NewPodManager.EvacZoneSpotted = true;
 			`Log(GetFuncName()@"Updating location of Evac Zone.");
-		}
-		if(PodManager.EvacZoneLocation != AlertInfo.AlertTileLocation)
-		{
 			NewPodManager.EvacZoneLocation = AlertInfo.AlertTileLocation;
-		}
+		}	
 		if( NewAIUnitData.AddAlertData(MovedUnit.ObjectID, eAC_SeesSmoke, AlertInfo, NewGameState) )
 		{
 			`Log(GetFuncName()@" successfully added alert data for Evac Zone @ location "$AlertInfo.AlertTileLocation.X$", "$AlertInfo.AlertTileLocation.Y);

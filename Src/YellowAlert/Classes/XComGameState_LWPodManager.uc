@@ -24,7 +24,9 @@ struct PodJob
 	var bool RequireYellowAlert;
 	var bool AllowYellowAlert;
 	var bool RequireObjectiveComplete;
+	var bool AllowObjectiveComplete;
 	var bool RequireEvacZoneSeen;
+	var bool DoNotAssign;
 	var bool Unlimited;
 	var float RandomChance;
 	var Name LeaderAIJob;
@@ -103,6 +105,10 @@ var int ObjectiveCompleteTurn;
 // Track information on Evac zone that was seen by advent
 var bool EvacZoneSpotted;
 var TTile EvacZoneLocation;
+
+// This is set if a pod has been sent to intercept Xcom, but nothing was found
+// Used to create the scout job once the intercept and block jobs are completed
+var int XComPositionInvestigatedTurn;
 
 static function XComGameState_LWPodManager GetPodManager()
 {
@@ -195,6 +201,7 @@ function UpdatePod(XComGameState NewGameState, XComGameState_AIGroup GroupState)
 {
 	local XComGameState_LWPodJob PodJ;
 	local int i;
+	local bool GiveScoutJob;
 
 	i = AssignedJobs.Find('GroupID', GroupState.ObjectID);
 	if (i != INDEX_NONE)
@@ -219,9 +226,35 @@ function UpdatePod(XComGameState NewGameState, XComGameState_AIGroup GroupState)
 			{
 				if (ActiveJobs[i] == PodJ.GetReference())
 				{
+					//Check if the job that we are about to remove is block or intercept
+					//And whether or not Xcom's last known position has been investigated
+					//If true than we want to give them the scout job as a replacement
+					if((PodJ.TemplateName == 'Intercept' || PodJ.TemplateName == 'Block') &&
+					XComPositionInvestigatedTurn > LastKnownXComPositionTurn)
+					{
+						GiveScoutJob = true;
+					}
 					RemoveActiveJob(i);
+					if(GiveScoutJob == true)
+					{
+						InitializeJob('Scout', FindJobIndexByFriendlyName("Scout"), GroupState, NewGameState);
+					}
 				}
 			}
+		}
+	}
+}
+
+function int FindJobIndexByFriendlyName(string FriendlyName)
+{
+	local int i;
+
+	for (i = 0; i < MissionJobs.Length; ++i)
+	{
+		if (MissionJobs[i].FriendlyName == FriendlyName)
+		{
+			// Return the index of this job
+			return i;
 		}
 	}
 }
@@ -396,6 +429,13 @@ function UpdateJobList(XComGameState_AIPlayerData AIPlayerData, out array<StateO
 			RemoveActiveJob(i);
 			--i;
 		}
+		else if (Job.GetMyTemplateName() == 'Scout' && XComPositionInvestigatedTurn <= LastKnownXComPositionTurn)
+		{
+			// If Xcom's known position is more recent than the turn investigated than we need to remove these from the active job list
+			`log("Yellow Alert Pod Manager Removing all Scout jobs");
+			RemoveActiveJob(i);
+			--i;
+		}
 	}
 
 	UnassignedPods.Length = 0;
@@ -477,7 +517,18 @@ function bool PodJobIsValidForMission(PodJob Job)
 		return false;
 	}
 
-	if (Job.RequireObjectiveComplete && ObjectiveCompleteTurn < 0)
+	// Handle jobs that are not assigned through the normal job assignment
+	if (Job.DoNotAssign)
+	{
+		`log("Excluding job "$Job.FriendlyName$", this job is assigned differently");
+		return false;
+	}
+
+	if (Job.AllowObjectiveComplete == true)
+	{
+		//skip the checks below and allow these jobs to go through
+	}
+	else if (Job.RequireObjectiveComplete && ObjectiveCompleteTurn < 0)
 	{
 		`Log("Excluding job "$Job.FriendlyName$" due to objective not completed");
 		return false;
@@ -633,8 +684,6 @@ function XComGameState_LWPodJob InitializeJob(Name JobName, int JobID, XComGameS
 	Template = GetJobTemplate(JobName); 
 	JobObj = Template.CreateInstance(NewGameState);
 	AlertCause = MissionJobs[JobID].AlertCause >= 0 ? MissionJobs[JobID].AlertCause : eAC_UNUSED_3;
-	//Yellow Alert Added - don't want throttling beacons to interfere with job alerts, especially for green alert pods
-	//RemoveAlertFromGroup(Group, NewGameState, Eac_ThrottlingBeacon, False);
 	JobObj.InitJob(Template, Group, JobID, AlertCause, MissionJobs[JobID].AlertTag, NewGameState);
 	ActiveJobs.AddItem(JobObj.GetReference());
 
@@ -895,6 +944,7 @@ defaultproperties
 {
 	bTacticalTransient=true
 	LastKnownXComPositionTurn=-1
+	XComPositionInvestigatedTurn=-1
 	ObjectiveCompleteTurn=-2
 	EvacZoneSpotted=false
 }
