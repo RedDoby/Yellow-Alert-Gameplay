@@ -61,7 +61,31 @@ XGAIPatrolGroup</Description>
     <Content Include="Config\XcomYellowAlert.ini">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Content\UMS_MissionCore.umap">
+    <Content Include="Content\Obj_Blacksite.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_DestroyObject.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_DestroyTransmitter.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_HackWorkstation.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_NeutralizeFieldCommander.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_NeutralizeTarget.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_RecoverItem.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_RescueVIP.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_SabotageV2.umap">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Localization\XComGame.int">

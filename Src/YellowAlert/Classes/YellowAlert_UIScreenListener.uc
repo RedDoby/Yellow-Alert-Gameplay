@@ -37,26 +37,27 @@ event OnInit(UIScreen screen)
 
 	ThisObj = self;
 	
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'AbilityActivated', OnAbilityActivated, ELD_OnStateSubmitted,39);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'AbilityActivated', OnAbilityActivated, ELD_OnStateSubmitted, 55);
 	//Needs to be lower priority than the function in XcomGameState-Unit so the alert can be added to the group first
 	//After testing this out the priority doesn't seem to matter, it is still random which one goes first
 	//So I had to resort to other measures to insure the above doesn't happen
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'AlertDataTriggerAlertAbility', OnAlertDataTriggerAlertAbility, ELD_OnStateSubmitted, 100);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'AlertDataTriggerAlertAbility', OnAlertDataTriggerAlertAbility, ELD_OnStateSubmitted, 45);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'OnEnvironmentalDamage', OnExplosion, ELD_OnStateSubmitted);
 	//Needs to be high priority so that it runs prior to the reinforcement spawner listener return
 	//since that would cause the reflex move activation to happen prior to marking reinforcement units here
 	//After testing this out the priority doesn't seem to matter, it is still random which one goes first
 	//So I had to resort to other measures to insure the above doesn't happen
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'SpawnReinforcementsComplete', OnSpawnReinforcementsComplete, ELD_OnStateSubmitted, 1);
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'ProcessReflexMove', RefundActionPoint, ELD_OnStateSubmitted);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'SpawnReinforcementsComplete', OnSpawnReinforcementsComplete, ELD_OnStateSubmitted, 55);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'ProcessReflexMove', RefundActionPoint, ELD_Immediate);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'UnitTakeEffectDamage', OnUnitTookDamage, ELD_OnStateSubmitted);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'OverrideSeesAlertedAllies', CheckSeesAlertedAlliesAlert, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'OverrideEncounterZoneAnchorPoint', DisableEnemiesChasingPlayerPosition, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'OnTacticalBeginPlay', DisableInterceptAIBehavior, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'OverridePatrolBehavior', DisableDefaultPatrolBehavior, ELD_Immediate);
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'OnTacticalBeginPlay', OnTacticalBeginPlay, ELD_OnStateSubmitted, 49);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'OnTacticalBeginPlay', OnTacticalBeginPlay, ELD_OnStateSubmitted, 51);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'AlienTurnBegun', OnAlienTurnBegin, ELD_OnStateSubmitted);
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'UnitGroupTurnBegun', OnUnitGroupTurnBegun, ELD_OnStateSubmitted, 1);
-	`XEVENTMGR.RegisterForEvent(ThisObj, 'AbilityActivated', SetPodManagerAlert, ELD_OnStateSubmitted,40);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'UnitGroupTurnBegun', OnUnitGroupTurnBegun, ELD_OnStateSubmitted, 55);
+	`XEVENTMGR.RegisterForEvent(ThisObj, 'AbilityActivated', SetPodManagerAlert, ELD_OnStateSubmitted, 53);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'PlayerTurnBegun', LW2OnPlayerTurnBegun, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'DrawDebugLabels', OnDrawDebugLabels, ELD_Immediate);
 	`XEVENTMGR.RegisterForEvent(ThisObj, 'OnMissionObjectiveComplete', OnObjectiveComplete, ELD_OnStateSubmitted);
@@ -74,6 +75,7 @@ event OnRemoved(UIScreen screen)
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'OnEnvironmentalDamage');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'SpawnReinforcementsComplete');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'ProcessReflexMove');
+	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'UnitTakeEffectDamage');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'OverrideSeesAlertedAllies');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'OverrideEncounterZoneAnchorPoint');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'OnTacticalBeginPlay');
@@ -291,16 +293,16 @@ function EventListenerReturn OnAbilityActivated(Object EventData, Object EventSo
 // Check incoming red and yellow alerts for AI to AI damage outside of Xcom's vision
 function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Object EventSource, XComGameState GameState, Name Event, Object CallbackData)
 {
-	local XComGameState_Unit AlertedUnit, DamagingUnit, NewUnitState;
+	local XComGameState_Unit AlertedUnit, DamagingUnit/*, NewUnitState*/;
 	local XComGameState_AIGroup AIGroupState;
 	local XComGameState_AIUnitData AIGameState;
 	local int AIUnitDataID, AlertDataIndex, DamagingUnitID, DamagingUnitGroupID;
 	local EAlertCause AlertCause, AIAlertCause;
 	local XComGameStateHistory History;
 	local ETeam DamagingUnitTeam, AlertedUnitTeam;
-	local XComGameState NewGameState;
-	local array<int> LivingMembers;
-	local int j;
+	//local XComGameState NewGameState;
+	//local array<int> LivingMembers;
+	//local int j;
 
 	if(!EnableAItoAIActivation)//check config if activation is true then continue
 		{
@@ -326,7 +328,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 		AlertCause = eAC_None;
 
 		if( AIGameState.RedAlertCause == eAC_TakingFire || AIGameState.RedAlertCause == eAC_TookDamage ||
-			(class'HelpersYellowAlert'.static.AISeesAIEnabled() && AIGameState.RedAlertCause == eAC_SeesSpottedUnit) )//optional config for SeesSpottedUnit AI red alerts
+			(AlertCause == eAC_SeesSpottedUnit && class'HelpersYellowAlert'.static.AISeesAIEnabled()) )
 		{
 			AlertCause = AIGameState.RedAlertCause;
 			`Log("Yellow Alert Gameplay: detected Red Alert caused by "@AlertCause@" to unit #"@AlertedUnit.ObjectID);
@@ -355,19 +357,17 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 						
 						if(DamagingUnitTeam != eTeam_XCom) //only processing ai to ai damages here
 						{  
-							`Log("Yellow Alert Gameplay: Activating Ai group on team "@AlertedUnitTeam@", group #"@AIGroupState.ObjectID@" caused by AI team "@DamagingUnitTeam@", group #"@DamagingUnitGroupID);
-							
 							//We will need to assign a special value to mark that these are not reinforcements since they will be process their reflex move in yellow alert
-							NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Yellow Alert Processing AI to AI Reflex Move Activations outside of XCom's Vision");
-							AIGroupState.GetLivingMembers(LivingMembers);
-							for (j = 0; j < LivingMembers.Length; ++j)
-							{
-								NewUnitState = XComGameState_Unit(NewGameState.CreateStateObject(class'XComGameState_Unit', LivingMembers[j]));
-								NewUnitState.SetUnitFloatValue(NoReinforcementUnitValue, 1, eCleanup_BeginTurn);
-							}
-							`TACTICALRULES.SubmitGameState(NewGameState);
-
+							//NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Yellow Alert Processing AI to AI Reflex Move Activations outside of XCom's Vision");
+							//AIGroupState.GetLivingMembers(LivingMembers);
+							//for (j = 0; j < LivingMembers.Length; ++j)
+							//{
+								//NewUnitState = XComGameState_Unit(NewGameState.CreateStateObject(class'XComGameState_Unit', LivingMembers[j]));
+								//NewUnitState.SetUnitFloatValue(NoReinforcementUnitValue, 1, eCleanup_BeginTurn);
+							//}
+							//`TACTICALRULES.SubmitGameState(NewGameState);
 							AIGroupState.InitiateReflexMoveActivate(DamagingUnit, AIAlertCause);
+							`Log("Yellow Alert Gameplay: Activating Ai group on team "@AlertedUnitTeam@", group #"@AIGroupState.ObjectID@" caused by AI team "@DamagingUnitTeam@", group #"@DamagingUnitGroupID);
 						}
 						break; //source unit found, end loop
 					}
@@ -403,7 +403,8 @@ function EventListenerReturn OnSpawnReinforcementsComplete(Object EventData, Obj
 	// There are times when this listener is called prior to processreflex move and times when it gets called after.  
 	// If it's called after we need to have this check so that they don't move again after scamper.  
 	// If this is called first and the units are scampering the summoning sickness is uncleared during the process reflex move so it doesn't matter if we set it to true anyway.
-	if (Group != None && !Group.bProcessedScamper && bRapidReinforcements) 
+	// Add an exeption for ETeam_One - which is the hive.  They are already too OP as it is
+	if (Group != None || Group.TeamName != eTeam_One && !Group.bProcessedScamper && bRapidReinforcements) 
 	{
 		Group = XComGameState_AIGroup(NewGameState.ModifyStateObject(class'XComGameState_AIGroup', Group.ObjectID));
 		//This flag allows reinforcement units take a full turn on the same turn that they spawn outside Xcom vision
@@ -421,17 +422,17 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 	local array<int> LivingMembers;
 	local XComGameState_Unit LeaderState, Member, PreviousUnit;
 	local XGAIPlayer AIPlayer;
+	local ETeam LeaderTeam;
 	local XComGameState_AIPlayerData AIData;
 	local XComGameStateContext_Ability AbilityContext;
 	local XComGameStateHistory History;
+	local X2TacticalGameRuleset Rules;
 	local TTile TurnStartLocation, CurrentLocation;
-	local int j, DistanceMoved, NumScamperActionPoints;
+	local int j, DistanceMoved;
 	local bool IsYellow, IsReinforcementGroup, bFoundMovement;
     local float Chance, Roll, CharBaseStat, MaxMovementPerAction;
-	local UnitValue Value, ValueX;
+	local UnitValue Value/*, ValueX*/;
 	local XComGameState_Player PlayerState;
-	local X2AIBTBehaviorTree BTMgr;
-	local X2CharacterTemplate Template;
 
 		// Note: We don't currently support reflex actions on XCOM's turn. Doing so requires
 	// adjustments to how scampers are processed so the units would use their extra action
@@ -445,9 +446,10 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 
 	GroupState = XComGameState_AIGroup(EventSource);
 	History = `XCOMHISTORY;
-	BTMgr = `BEHAVIORTREEMGR;
+	Rules = `TACTICALRULES;
 	GroupState.GetLivingMembers(LivingMembers);
 	LeaderState = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[0]));
+	LeaderTeam = LeaderState.GetTeam();
 	`Log(GetFuncName() $ ": Processing reflex move for Leader " $ LeaderState.GetMyTemplateName());
 	PlayerState = XComGameState_Player(History.GetGameStateForObjectID(LeaderState.ControllingPlayer.ObjectID));
 
@@ -461,16 +463,16 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 		`Log(GetFuncName() $ ": First turn reflex reactions are disabled: aborting");
 		return ELR_NoInterrupt;
 	}
-
-	if (LeaderState.GetTeam() == eTeam_TheLost)
+	// Add an exeption for the lost and ETeam_One (The Hive)
+	if (LeaderTeam == eTeam_TheLost || LeaderTeam == eTeam_One)
 	{
-		`Log(GetFuncName() $ ": The lost aren't eligible for first turn reflex reactions: aborting");
+		`Log(GetFuncName() $ ": The lost and Eteam_One (The Hive) aren't eligible for reflex reactions: aborting");
 		return ELR_NoInterrupt;
 	}
 
-    if (PlayerState.GetTeam() != `TACTICALRULES.GetUnitActionTeam())
+    if (LeaderTeam != Rules.GetUnitActionTeam())
     {
-        `Log(GetFuncName() $ ": Not the "$PlayerState.GetTeam()$" team's turn; It's the "$`TACTICALRULES.GetUnitActionTeam()$" team's turn: aborting");
+        `Log(GetFuncName() $ ": Not the "$LeaderTeam$" team's turn: aborting");
         return ELR_NoInterrupt;
     }
 
@@ -499,24 +501,26 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			IsReinforcementGroup = true;//Mark this as a reinforcement group
 		}
 	}
+	//REMOVING THE RED ALERT CHECK FOR NOW. I DISCOVERED MY FIRST CASE OF UNITS PROCESSING REFLEX MOVE IN YELLOW ALERT
+	//I BELIEVE THE ABOVE CHECK IS SUFFICIENT FOR DETERMINING REINFORCEMENTS
 	//If this NoReinforcementValue is there than that means this is not a reinforcement unit
-	LeaderState.GetUnitValue(NoReinforcementUnitValue, ValueX);
-
-	if (LeaderState.GetCurrentStat(eStat_AlertLevel) <= 1 && ValueX.fValue != 1) 
-	{	
-		if(!bRapidReinforcements)//If Rapid reinforcements are disabled then don't allow reflex actions for these groups
-		{
-			//This unit isn't in red alert. If a scampering unit is not in red, this generally means they're a reinforcement
-			// pod. Skip them.
-			`Log(GetFuncName() $ ": Reinforcement unit: aborting");
-			return ELR_NoInterrupt;
-		}
-		else
-		{
-			`Log(GetFuncName() $ ": Reinforcement unit: Continuing");
-			IsReinforcementGroup = true;//Mark this as a reinforcement group
-		}
-	}
+	//LeaderState.GetUnitValue(NoReinforcementUnitValue, ValueX);
+//
+	//if (LeaderState.GetCurrentStat(eStat_AlertLevel) <= 1 && ValueX.fValue != 1) 
+	//{	
+		//if(!bRapidReinforcements)//If Rapid reinforcements are disabled then don't allow reflex actions for these groups
+		//{
+			////This unit isn't in red alert. If a scampering unit is not in red, this generally means they're a reinforcement
+			//// pod. Skip them.
+			//`Log(GetFuncName() $ ": Reinforcement unit: aborting");
+			//return ELR_NoInterrupt;
+		//}
+		//else
+		//{
+			//`Log(GetFuncName() $ ": Reinforcement unit: Continuing");
+			//IsReinforcementGroup = true;//Mark this as a reinforcement group
+		//}
+	//}
 	
 	// Walk backwards through history for this unit until we find a state in which this unit wasn't in red
 	// alert to see if we entered from yellow or from green.
@@ -543,41 +547,36 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 	//Then we will count the number of tiles moved for each member, if they didn't take a full movement then they will have a chance to get an extra action point
 	foreach History.IterateContextsByClassType( class'XComGameStateContext_Ability', AbilityContext, , true, AIData.m_iLastEndTurnHistoryIndex)
 	{
-		for (j = 0; j < LivingMembers.Length; ++j)
-		{	
-			Member = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[j]));
-			if( AbilityContext.InputContext.AbilityTemplateName == 'StandardMove' && AbilityContext.InputContext.SourceObject.ObjectID == Member.ObjectID)
-			{
+		if( AbilityContext.InputContext.AbilityTemplateName == 'StandardMove' &&  LivingMembers.Find(AbilityContext.InputContext.SourceObject.ObjectID) >= 0)
+		{
 			bFoundMovement = True;
 			`Log(GetFuncName() $ ": Found a Move for this Group");
 			break;
-			}
 		}
 	}
 	for (j = 0; j < LivingMembers.Length; ++j)
 	{
-		Member = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[j]));
+		Member = XComGameState_Unit(GameState.ModifyStateObject(class'XComGameState_Unit', LivingMembers[j]));
 		If (!Member.CanScamper())
 		{
 			`Log(GetFuncName() $ ": Skipping unit# "$Member.ObjectID$" because it can't scamper");
 			continue; //skip this unit if it can't scamper
 		}
-
+		DistanceMoved = 0;
+		CharBaseStat = Member.GetBaseStat(eStat_Mobility);
+		MaxMovementPerAction = CharBaseStat/2;
 		If(bFoundMovement)//Measure the distance moved
 		{
-			DistanceMoved = 0;
-			CharBaseStat = Member.GetBaseStat(eStat_Mobility);
-			MaxMovementPerAction = CharBaseStat/2;
-		
 			//measure the distance moved this turn to see how far they moved
 			//If they have moved half or less of their movement stat than they are ellible for a reflex action
 			TurnStartLocation = Member.TurnStartLocation;
 			CurrentLocation = Member.TileLocation;
 			DistanceMoved = class'Helpers'.static.DistanceBetweenTiles(TurnStartLocation, CurrentLocation, false) / 96;
 			`Log(GetFuncName() $ ": Found a Move this turn for Unit#"@Member.ObjectID@", distance moved: " @DistanceMoved@ " tiles.");
-			if(DistanceMoved > MaxMovementPerAction)
+			if(DistanceMoved >= MaxMovementPerAction)
 			{
-				`Log(GetFuncName() $ ": Unit has already moved more than "$MaxMovementPerAction$" spaces this turn and won't be eligible for a refunded reflex action point");
+				`Log(GetFuncName() $ ": Unit has already moved at least "$MaxMovementPerAction$" spaces this turn and won't be eligible for a refunded reflex action point");
+				ResetScamperQue(Member, true, j == 0);
 				continue;//Check next unit
 			}
 		}
@@ -594,7 +593,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			Chance = REFLEX_ACTION_CHANCE_GREEN;
 		}
 		//Distance Moved modifier 
-		Chance += ((MaxMovementPerAction + 1) / 2 - DistanceMoved) / (MaxMovementPerAction + 1);//Complicated I know, but it works
+		Chance += (MaxMovementPerAction / 2 - DistanceMoved) / (MaxMovementPerAction);//Complicated I know, but it works
 		`Log(GetFuncName() $ ": Adjusting reflex chance due to " $ DistanceMoved $ " tiles moved");
 
 		if (REFLEX_ACTION_CHANCE_REDUCTION > 0 && NumSuccessfulReflexActions > 0)
@@ -610,13 +609,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 		}
 		Roll = `SYNC_FRAND();
 		`Log(GetFuncName() $ ": Roll = " @ Roll @ " and chance = " @ Chance );
-		//remove existing scamper behavior queue
-		//The reason why we remove for all and not just units awarded an extra action is because the scamper animation starts for the first alive member
-		//We need to reset the order so that the first alive member gets marked with the bool bfirstscamper for the group and is the first in the queue to scamper
-		//Otherwise the scamper animation will sometimes be played after some units move
-		BTMgr.RemoveFromBTQueue(Member.ObjectID, true);
-		Template = Member.GetMyTemplate();
-		NumScamperActionPoints = Member.GetNumScamperActionPoints();
+	
 		if (Roll < Chance)
 		{ 
 			// Award the unit a special kind of action point for Defensive reactions. These are more restricted than standard action points.
@@ -625,30 +618,62 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			//
 			// Damaged units, and units in green (if enabled) get 'defensive' action points. Others get standard action points.
 			
-			if ((Member.IsInjured() || !IsYellow) && !IsReinforcementGroup)
+			if (Member.IsInjured() || !IsYellow)
 			{
 				Member.ActionPoints.AddItem(DefensiveReflexAction); //Give the unit a defensive action point
-				`Log(GetFuncName() $ ": Awarding an extra action Defensive action point to unit#"$ Member.ObjectID);
+				`Log(GetFuncName() $ ": Awarding an extra action Defensive action point to unit#"$ Member.ObjectID $" Total Action points now "$ Member.ActionPoints.length);
 			}
 			else
 			{
 				Member.ActionPoints.AddItem(class'X2CharacterTemplateManager'.default.StandardActionPoint);  //Refund the AI one action point to use after scamper.
-				`Log(GetFuncName() $ ": Awarding an extra standard action point to unit# "$ Member.ObjectID);	
+				`Log(GetFuncName() $ ": Awarding an extra standard action point to unit# "$ Member.ObjectID $" Total Action points now "$ Member.ActionPoints.length);	
 			}
 			//add one extra BT run for the refunded action point
 			//Since we have two action points to use now, let's give them access to the full behaviortree
-			//replace with new scamper behavior tree queue using the generic AI root, setting scamper to true and setting the first scamper unit of the group as j == 0
-			BTMgr.QueueBehaviorTreeRun(Member, Template.strBehaviorTree, NumScamperActionPoints+1, `XCOMHISTORY.GetCurrentHistoryIndex(), true, j == 0);
+			ResetScamperQue(Member, false, j == 0);
 			++NumSuccessfulReflexActions;
 		}
 		else
 		{
-		//this unit didn't roll for an extra action, but we still want to give them their normal number of BT scamper runs
-		BTMgr.QueueBehaviorTreeRun(Member, Template.strScamperBT, NumScamperActionPoints, `XCOMHISTORY.GetCurrentHistoryIndex(), true, j == 0);
-		`Log(GetFuncName() $ ": Resetting default scamper BT queue for unit# "$ Member.ObjectID);
+		//this unit didn't roll for an extra action, but we still want to reset their BT queue position and give them their default BT scamper run
+		ResetScamperQue(Member, true, j == 0);
 		}
 	}
 	return ELR_NoInterrupt;
+}
+
+// remove existing scamper behavior queue
+// The reason why we remove for all and not just units awarded an extra action is because the scamper animation starts for the first alive member
+// We need to reset the order so that the first alive member gets marked with the bool bfirstscamper for the group and is the first in the queue to scamper
+// Otherwise the scamper animation will sometimes be played after some units move
+// replace with new scamper behavior tree queue using the specified BT Root, setting scamper to true and setting the first scamper unit of the group as j == 0
+function ResetScamperQue(XComGameState_Unit Member, bool bScamperRoot = false, bool bFirstScamper = false)
+{		
+	local XComGameStateHistory History;
+	local X2AIBTBehaviorTree BTMgr;
+	local int NumScamperActionPoints;
+	local String BTRoot;
+	local X2CharacterTemplate Template;
+
+	BTMgr = `BEHAVIORTREEMGR;
+	History = `XCOMHISTORY;
+	// Remove the existing scamper BT queue
+	BTMgr.RemoveFromBTQueue(Member.ObjectID, true);
+	Template = Member.GetMyTemplate();
+	// Decide which bt root to choose and how many additional action points to give
+	if (bScamperRoot)
+	{
+		BTRoot = Template.strScamperBT;
+		NumScamperActionPoints = Member.GetNumScamperActionPoints();
+		`Log(GetFuncName() $ ": Resetting default scamper BT queue for unit# "$ Member.ObjectID $" Total Action points now "$ Member.ActionPoints.length);
+	}
+	else
+	{
+		// This unit is awarded with an additional action so we need to give them access to their full BT tree and an extra BT run
+		BTRoot = Template.strBehaviorTree;
+		NumScamperActionPoints = Member.GetNumScamperActionPoints()+1;
+	}
+	BTMgr.QueueBehaviorTreeRun(Member, BTRoot, NumScamperActionPoints, History.GetCurrentHistoryIndex()+1, true, bFirstScamper);
 }
 
 function bool IsDarkEvent_CounterattackActive()
@@ -672,6 +697,29 @@ function bool IsDarkEvent_CounterattackActive()
 		}
 	}
 	return false;
+}
+
+static function EventListenerReturn OnUnitTookDamage(Object EventData, Object EventSource, XComGameState GameState, Name InEventID, Object CallbackData)
+{
+	local XComGameState_Unit Unit;
+	local XComGameState NewGameState;
+
+	Unit = XComGameState_Unit(EventSource);
+	if (Unit.ControllingPlayerIsAI() &&
+		Unit.IsInjured() &&
+		`BEHAVIORTREEMGR.IsScampering() &&
+		Unit.ActionPoints.Find(class'X2CharacterTemplateManager'.default.StandardActionPoint) >= 0)
+	{
+		// This unit has taken damage, is scampering, and has a standard reflex action point. Replace it with
+		// a defensive action point.
+		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Replacing reflex action for injured unit");
+		Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
+		Unit.ActionPoints.RemoveItem(class'X2CharacterTemplateManager'.default.StandardActionPoint);
+		Unit.ActionPoints.AddItem(DefensiveReflexAction);
+		`TACTICALRULES.SubmitGameState(NewGameState);
+	}
+
+	return ELR_NoInterrupt;
 }
 
 function EventListenerReturn CheckSeesAlertedAlliesAlert(Object EventData, Object EventSource, XComGameState GameState, Name EventID, Object CallbackData)
@@ -1048,18 +1096,18 @@ function EventListenerReturn OnObjectiveComplete(Object EventData, Object EventS
 		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Updating Objective Complete Turn");
 		NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
 		NewPodManager.ObjectiveCompleteTurn = TurnCount;
-		AISetAllToYellowAlert();
 
 		if (NewGameState.GetNumGameStateObjects() > 0)
 		{
 			`TACTICALRULES.SubmitGameState(NewGameState);
+			`log("Objective Complete Turn: "$ TurnCount);
+			AISetAllToYellowAlert();
 		}
 		else
 		{
 			`XCOMHISTORY.CleanupPendingGameState(NewGameState);
 		}
 
-		`log("Objective Complete Turn: "$ TurnCount);
 	}
 	return ELR_NoInterrupt;
 }
@@ -1101,18 +1149,17 @@ function EventListenerReturn OnPodJobConverge(Object EventData, Object EventSour
 		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Updating Objective Complete Turn");
 		NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
 		NewPodManager.ObjectiveCompleteTurn = TurnCount;
-		AISetAllToYellowAlert();
 
 		if (NewGameState.GetNumGameStateObjects() > 0)
 		{
 			`TACTICALRULES.SubmitGameState(NewGameState);
+			`log("Objective Complete Turn: "$ TurnCount);
+			AISetAllToYellowAlert();
 		}
 		else
 		{
 			`XCOMHISTORY.CleanupPendingGameState(NewGameState);
 		}
-
-		`log("Objective Complete Turn: "$ TurnCount);
 	}
 	return ELR_NoInterrupt;
 }
@@ -1124,11 +1171,9 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	local XComGameState_Unit MovedUnit;
 	local XComGameState_Player MovedUnitPlayer;
 	local XComGameStateHistory History;
-	local int i, iDataID, PathIndex, SightRadiusUnitsSq;
+	local int i, PathIndex, SightRadiusUnitsSq;
 	local XComGameStateContext_Ability MoveContext;
 	local XComGameState OtherGameState, NewGameState;
-	local XComGameState_AIUnitData AIUnitData, NewAIUnitData;
-	local AlertAbilityInfo AlertInfo;
 	local TTile TestTile, BlankTile;
 	local bool EvacZoneSpotted, bIsInSightRadius;
 	local GameRulesCache_VisibilityInfo OutVisInfo;
@@ -1145,7 +1190,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 
 	PodManager = `LWPODMGR;
 	EvacZone = class'XComGameState_EvacZone'.static.GetEvacZone(eTeam_XCom);
-	//If the evac zone was already spotted, check to see if the evac zone is no longer there or has moved and the aliens can see that
+	//If the evac zone was already spotted and the aliens have eyes on that location, check to see if the evac zone is no longer there
 	if(PodManager.EvacZoneSpotted)
 	{
 		if (class'X2TacticalVisibilityHelpers'.static.CanUnitSeeLocation(MovedUnit.ObjectID, PodManager.EvacZoneLocation))
@@ -1204,50 +1249,22 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 			}
 		}
 	}
-	// If the moved unit has or can see the Evac Zone, then we need to check for existing alert data
-	// before entering the new alert
+	// If the moved unit has or can see the Evac Zone, then we need to check if the existing evac zone has been seen
+	// before updating the Pod Manager Variables for tracking Evac Zone
 	if (EvacZoneSpotted)
 	{
-		iDataID = MovedUnit.GetAIUnitDataID();
-		if( iDataID > 0 )
+		if (PodManager.EvacZoneSpotted && PodManager.EvacZoneLocation == EvacZone.CenterLocation)
 		{
-			AIUnitData = XComGameState_AIUnitData(History.GetGameStateForObjectID(iDataID));
-			for (i = 0; i < AIUnitData.m_arrAlertData.Length; ++i)
-			{
-				// We only want to check for existing Evac Zone alerts at the same location.
-				// If found then skip adding this new alert
-				if (AIUnitData.m_arrAlertData[i].AlertCause == eAC_SeesSmoke &&
-						AIUnitData.m_arrAlertData[i].AlertLocation == EvacZone.CenterLocation)
-				{
-					`Log(GetFuncName()@"existing alert data found at this location - aborting");
-					return ELR_NoInterrupt;
-				}
-			}
+			`Log(GetFuncName()@"existing data found at this location - aborting");
+			return ELR_NoInterrupt;
 		}
-		// Create new game state, add the alert data, submit
-		AlertInfo.AlertTileLocation = EvacZone.CenterLocation;
-		AlertInfo.AlertUnitSourceID = 0;
-		AlertInfo.AnalyzingHistoryIndex = GameState.HistoryIndex;
-		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState(string(GetFuncName()));
-		NewAIUnitData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', iDataID));
 
 		// Update Pod Manager Variables for tracking Evac Zone
-		
-		if(!PodManager.EvacZoneSpotted)
-		{
-			NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
-			NewPodManager.EvacZoneSpotted = true;
-			`Log(GetFuncName()@"Updating location of Evac Zone.");
-			NewPodManager.EvacZoneLocation = AlertInfo.AlertTileLocation;
-		}	
-		if( NewAIUnitData.AddAlertData(MovedUnit.ObjectID, eAC_SeesSmoke, AlertInfo, NewGameState) )
-		{
-			`Log(GetFuncName()@" successfully added alert data for Evac Zone @ location "$AlertInfo.AlertTileLocation.X$", "$AlertInfo.AlertTileLocation.Y);
-		}
-		else
-		{
-			NewGameState.PurgeGameStateForObjectID(NewAIUnitData.ObjectID);
-		}
+		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState(" Yellow Alert Pod Manager updating location of Evac Zone.");
+		NewPodManager = XComGameState_LWPodManager(NewGameState.ModifyStateObject(class'XComGameState_LWPodManager', PodManager.ObjectID));
+		NewPodManager.EvacZoneSpotted = true;
+		`Log(GetFuncName()@"Updating location of Evac Zone.");
+		NewPodManager.EvacZoneLocation = EvacZone.CenterLocation;
 		if(NewGameState.GetNumGameStateObjects() > 0)
 		{
 			`TACTICALRULES.SubmitGameState(NewGameState);

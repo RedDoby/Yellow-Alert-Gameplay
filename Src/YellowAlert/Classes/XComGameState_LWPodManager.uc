@@ -77,6 +77,9 @@ var config array<PodJob> MissionJobs;
 // Jobs that should be continued when yellow alert is entered
 var config array<Name> JobsToMaintainAcrossAlert;
 
+// Jobs that are given the scout job once complete and xcom's position has been investigated
+var config array<Name> JobsToGiveScoutJob;
+
 // Internal counter of the number of turns that have passed since
 // xcom revealed.
 var int TurnCount;
@@ -226,10 +229,10 @@ function UpdatePod(XComGameState NewGameState, XComGameState_AIGroup GroupState)
 			{
 				if (ActiveJobs[i] == PodJ.GetReference())
 				{
-					//Check if the job that we are about to remove is block or intercept
-					//And whether or not Xcom's last known position has been investigated
-					//If true than we want to give them the scout job as a replacement
-					if((PodJ.TemplateName == 'Intercept' || PodJ.TemplateName == 'Block') &&
+					// Check if the job that we are about to remove is defined in the JobsToGiveScoutJob array
+					// And whether or not Xcom's last known position has been investigated
+					// If true than we want to give them the scout job as a replacement
+					if(JobsToGiveScoutJob.Find(PodJ.TemplateName) >= 0 &&
 					XComPositionInvestigatedTurn > LastKnownXComPositionTurn)
 					{
 						GiveScoutJob = true;
@@ -263,33 +266,32 @@ function UpdateXComPosition()
 {
 	local XGAIPlayer AIPlayer;
 	local array<Vector> EnemyLocations;
-	local int i;
-	local Vector Midpoint;
+	local Vector Midpoint, PingLocation;
 	local XComGameState_Unit Unit;
 	local XComGameState_AIUnitData AIUnitData;
 	local XComGameStateHistory History;
 	local TTile BestLocation;
-	local int BestTurn;
-	local int AIUnitDataID;
-	local XComAISpawnManager SpawnManager;
-	local Vector PingLocation;
+	local int BestTurn, i, AIUnitDataID, CurrentTurnCount;
+	local XComTacticalMissionManager MissionManager;
 	local XComGameState_BattleData BattleData;
 
 	History = `XCOMHISTORY;
-
+	CurrentTurnCount = class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount;
 	// First, check mission family for an Avenger Defense mission.  Those missions need to start out with XCom's position at the avenger
 	// Not the center of the map
-	if (`TACTICALMISSIONMGR.ActiveMission.MissionName == 'ChosenAvengerDefense' ||
-		`TACTICALMISSIONMGR.ActiveMission.MissionName == 'AvengerDefense' && 
-		class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount == 1)
+	if (CurrentTurnCount == 1)
 	{
-		SpawnManager = `SPAWNMGR;
-		PingLocation = SpawnManager.GetCurrentXComLocation();
-		LastKnownXComPosition = PingLocation;
-		LastKnownXComPositionTurn = 1;
+		MissionManager = `TACTICALMISSIONMGR;
+		if (MissionManager.ActiveMission.MissionName == 'ChosenAvengerDefense' ||
+			MissionManager.ActiveMission.MissionName == 'AvengerDefense')
+		{
+			PingLocation = `SPAWNMGR.GetCurrentXComLocation();
+			LastKnownXComPosition = PingLocation;
+			LastKnownXComPositionTurn = 1;
+		}
 	}
 	`log("Updating XCom Position");
-	`log("Player Turn Count: "$class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount);
+	`log("Player Turn Count: "$CurrentTurnCount);
 
 	// First, try to find anyone with eyes on XCom. Use the current visible enemies,
 	// rather than the absolute knowledge alerts.
@@ -304,7 +306,7 @@ function UpdateXComPosition()
 
 		MidPoint /= EnemyLocations.Length;
 		LastKnownXComPosition = Midpoint;
-		LastKnownXComPositionTurn = class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount;
+		LastKnownXComPositionTurn = CurrentTurnCount;
 	}
 	else
 	{
@@ -429,7 +431,7 @@ function UpdateJobList(XComGameState_AIPlayerData AIPlayerData, out array<StateO
 			RemoveActiveJob(i);
 			--i;
 		}
-		else if (Job.GetMyTemplateName() == 'Scout' && XComPositionInvestigatedTurn <= LastKnownXComPositionTurn)
+		else if (Job.GetMyTemplateName() == 'Scout' && XComPositionInvestigatedTurn < LastKnownXComPositionTurn)
 		{
 			// If Xcom's known position is more recent than the turn investigated than we need to remove these from the active job list
 			`log("Yellow Alert Pod Manager Removing all Scout jobs");
@@ -716,7 +718,7 @@ function XComGameState_LWPodJob InitializeJob(Name JobName, int JobID, XComGameS
 		`AIJOBMGR.bJobListDirty = true;
 	}
 
-	`Log("Assigned job " $ JobObj.GetMyTemplateName() $ " to group " $ Group.ObjectID);
+	`Log("Assigned job " $ MissionJobs[JobID].FriendlyName $ " - " $ JobObj.GetMyTemplateName() $ " to group " $ Group.ObjectID);
 	return JobObj;
 }
 

@@ -64,10 +64,18 @@ function bool HasReachedDestination()
 function bool ShouldContinueJob(XComGameState NewGameState)
 {
 	local XComGameState_LWPodManager PodMgr, NewPodMgr;
-
+	local XComGameState_AIPlayerData AIPlayerData;
     // Have we reached our destination?
     if (HasReachedDestination())
     {
+		// Reset the initiated turn count for the jobs that are indefinite i.e. Defend
+		// This is needed because the super.ShouldCountinueJob will remove the job for defend after the timeout period
+		// since defend patrols around the objective and doesn't reach it's destination every turn
+		if (KeepJobAfterReachingDestination)
+		{
+			AIPlayerData = GetAIPlayerData();
+			InitTurn = AIPlayerData.StatsData.TurnCount;
+		}
 		// Mark that XCom's position has been investigated and nothing was found
 		if(GetMyTemplateName() == 'Intercept')
 		{

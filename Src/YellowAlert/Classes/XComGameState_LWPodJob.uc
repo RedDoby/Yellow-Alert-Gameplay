@@ -225,7 +225,7 @@ function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState NewGam
 					AIUnitData.m_arrAlertData[AlertIdx].PlayerTurn <= MaxTurn*/)
 				{
 					AIUnitData.m_arrAlertData.Remove(AlertIdx, 1);
-					`Log("Pod Job Manager Removing Alert Data from unit# "$Unit.ObjectID$" on turn "$CurrentTurn);
+					`Log("Pod Job Manager Removing Throttling and PodJob Alert Data from unit# "$Unit.ObjectID$" on turn "$CurrentTurn);
 					FoundAlertDataToDelete = true;
 				}
 			}
