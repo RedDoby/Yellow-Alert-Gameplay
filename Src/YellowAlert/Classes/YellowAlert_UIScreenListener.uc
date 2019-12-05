@@ -702,16 +702,28 @@ function bool IsDarkEvent_CounterattackActive()
 static function EventListenerReturn OnUnitTookDamage(Object EventData, Object EventSource, XComGameState GameState, Name InEventID, Object CallbackData)
 {
 	local XComGameState_Unit Unit;
+	local ETeam Team;
 	local XComGameState NewGameState;
+	local Name BTNode;
+	local X2AIBTBehaviorTree BTMgr;
+	local Int Idx;
 
+	BTMgr = `BEHAVIORTREEMGR;
 	Unit = XComGameState_Unit(EventSource);
-	if (Unit.ControllingPlayerIsAI() &&
-		Unit.IsInjured() &&
-		`BEHAVIORTREEMGR.IsScampering() &&
-		Unit.ActionPoints.Find(class'X2CharacterTemplateManager'.default.StandardActionPoint) >= 0)
+	Team = Unit.GetTeam();
+	BTNode = Name(Unit.GetMyTemplate().strBehaviorTree);
+	Idx = BTMgr.ActiveBTQueue.Find('ObjectID', Unit.ObjectID);
+	
+	if (Unit.IsInjured() &&
+		BTMgr.ActiveBTQueue[Idx].bScamperEntry &&
+		BTMgr.ActiveBTQueue[Idx].Node == BTNode && 
+		Unit.ActionPoints.Find(class'X2CharacterTemplateManager'.default.StandardActionPoint) >= 0 &&
+		Team != `TACTICALRULES.GetUnitActionTeam())
 	{
-		// This unit has taken damage, is scampering, and has a standard reflex action point. Replace it with
-		// a defensive action point.
+		`Log(GetFuncName() $ ": Replacing reflex action for injured unit# " $ Unit.ObjectID);
+		// This unit has taken damage, is scampering, is using the default BT Node
+		// (Units that had an standard action point refunded should only pass this check), 
+		// and is this unit team's turn. Replace it with a defensive action point.
 		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Replacing reflex action for injured unit");
 		Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
 		Unit.ActionPoints.RemoveItem(class'X2CharacterTemplateManager'.default.StandardActionPoint);
