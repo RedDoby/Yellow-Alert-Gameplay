@@ -28,6 +28,18 @@ function bool ProcessTurn(XComGameState_LWPodManager PodMgr, XComGameState NewGa
     local XComGameState_AIGroup Group;
     local LWPodJobTemplate Template;
 
+	// Check if the job that we are about to remove is defined in the JobsToGiveScoutJob array
+	// And whether or not Xcom's last known position has been investigated
+	// If true than we want to end this job and 
+	// give them the scout job as a replacement (UpdatePod in LWPodManager)
+
+	if(PodMgr.JobsToGiveScoutJob.Find(GetMyTemplateName()) >= 0 &&
+	PodMgr.XComPositionInvestigatedTurn > PodMgr.LastKnownXComPositionTurn)
+	{
+		//`log("XCom Position has been investigated - ending "$GetMyTemplateName()$" job");
+		return false;
+	}
+
     if (!ShouldContinueJob(NewGameState))
     {
         return false;

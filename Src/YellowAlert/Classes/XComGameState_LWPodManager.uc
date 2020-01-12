@@ -290,8 +290,8 @@ function UpdateXComPosition()
 			LastKnownXComPositionTurn = 1;
 		}
 	}
-	`log("Updating XCom Position");
-	`log("Player Turn Count: "$CurrentTurnCount);
+	//`log("Updating XCom Position");
+	//`log("Player Turn Count: "$CurrentTurnCount);
 
 	// First, try to find anyone with eyes on XCom. Use the current visible enemies,
 	// rather than the absolute knowledge alerts.
@@ -340,7 +340,7 @@ function UpdateXComPosition()
 			BattleData = XComGameState_BattleData(History.GetSingleGameStateObjectForClass(class'XComGameState_BattleData'));
 			LastKnownXComPosition = BattleData.MapData.ObjectiveLocation;
 			LastKnownXComPositionTurn = ObjectiveCompleteTurn;
-			`log("Using Objective as XCom Position");
+			//`log("Using Objective as XCom Position");
 		}
 		else if (BestTurn >= 0)
 		{
@@ -413,7 +413,7 @@ function UpdateJobList(XComGameState_AIPlayerData AIPlayerData, out array<StateO
 		else if (ObjectiveCompleteTurn == class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount-1)
 		{
 			// If the objective was completed during Alien's last turn (Xcom's turn) than we need to remove all active jobs
-			`log("Yellow Alert Pod Manager Removing All active jobs due to objective completed");
+			//`log("Yellow Alert Pod Manager Removing All active jobs due to objective completed");
 			RemoveActiveJob(i);
 			--i;
 		}
@@ -427,14 +427,14 @@ function UpdateJobList(XComGameState_AIPlayerData AIPlayerData, out array<StateO
 		else if (!EvacZoneSpotted && Job.GetMyTemplateName() == 'GuardEvacZone')
 		{
 			// If the Evac zone spotted flag is now false then this means the evac zone location is not known anymore
-			`log("Yellow Alert Pod Manager Removing All active Guard Evac Zone jobs due to Evac Zone location not known");
+			//`log("Yellow Alert Pod Manager Removing All active Guard Evac Zone jobs due to Evac Zone location not known");
 			RemoveActiveJob(i);
 			--i;
 		}
 		else if (Job.GetMyTemplateName() == 'Scout' && XComPositionInvestigatedTurn < LastKnownXComPositionTurn)
 		{
 			// If Xcom's known position is more recent than the turn investigated than we need to remove these from the active job list
-			`log("Yellow Alert Pod Manager Removing all Scout jobs");
+			//`log("Yellow Alert Pod Manager Removing all Scout jobs");
 			RemoveActiveJob(i);
 			--i;
 		}
@@ -515,14 +515,14 @@ function bool PodJobIsValidForMission(PodJob Job)
 
 	if (Job.MinTurn >= 0 && TurnCount < Job.MinTurn)
 	{
-		`log("Excluding job "$Job.FriendlyName$" due to min turn count");
+		//`log("Excluding job "$Job.FriendlyName$" due to min turn count");
 		return false;
 	}
 
 	// Handle jobs that are not assigned through the normal job assignment
 	if (Job.DoNotAssign)
 	{
-		`log("Excluding job "$Job.FriendlyName$", this job is assigned differently");
+		//`log("Excluding job "$Job.FriendlyName$", this job is assigned differently");
 		return false;
 	}
 
@@ -532,18 +532,18 @@ function bool PodJobIsValidForMission(PodJob Job)
 	}
 	else if (Job.RequireObjectiveComplete && ObjectiveCompleteTurn < 0)
 	{
-		`Log("Excluding job "$Job.FriendlyName$" due to objective not completed");
+		//`Log("Excluding job "$Job.FriendlyName$" due to objective not completed");
 		return false;
 	}
 	else if (!Job.RequireObjectiveComplete && ObjectiveCompleteTurn >= 0)
 	{
-		`Log("Excluding job "$Job.FriendlyName$" due to objective completed");
+		//`Log("Excluding job "$Job.FriendlyName$" due to objective completed");
 		return false;
 	}
 
 	if (Job.RequireEvacZoneSeen && !EvacZoneSpotted)
 	{
-		`Log("Excluding job "$Job.FriendlyName$" due to Evac Zone not seen");
+		//`Log("Excluding job "$Job.FriendlyName$" due to Evac Zone not seen");
 		return false;
 	}
 
@@ -570,7 +570,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	local int i;
 	local float Roll;
 
-	`log("Considering job " $ Job.FriendlyName $ " for pod " $ Group.ObjectID);
+	//`log("Considering job " $ Job.FriendlyName $ " for pod " $ Group.ObjectID);
 
 	Group.GetLivingMembers(Members);
 	if (Job.MinSize >= 0 && Members.Length < Job.MinSize)
@@ -590,7 +590,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (Group.MyEncounterZoneWidth >= 10)
 		{
-			`log("Excluding job "$Job.FriendlyName$" due to guard pod requirement");
+			//`log("Excluding job "$Job.FriendlyName$" due to guard pod requirement");
 			return false;
 		}
 	} 
@@ -598,7 +598,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (Group.MyEncounterZoneWidth < 10)
 		{
-			`log("Excluding job "$Job.FriendlyName$" due to non-guard pod requirement");
+			//`log("Excluding job "$Job.FriendlyName$" due to non-guard pod requirement");
 			return false;
 		}
 	}
@@ -608,7 +608,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (!GroupIsInYellowAlert(Group))
 		{
-			`log("Excluding job "$Job.FriendlyName$" due to yellow alert requirement");
+			//`log("Excluding job "$Job.FriendlyName$" due to yellow alert requirement");
 			return false;
 		}
 	}
@@ -616,7 +616,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	{
 		if (GroupIsInYellowAlert(Group))
 		{
-			`log("Excluding job "$Job.FriendlyName$" due to green alert requirement");
+			//`log("Excluding job "$Job.FriendlyName$" due to green alert requirement");
 			return false;
 		}
 	}
@@ -624,13 +624,13 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 	if (AlertLevel == `ALERT_LEVEL_GREEN && !GroupIsInYellowAlert(Group))
 	{
 		// If we're still in green alert, don't assign any green pods jobs.
-		`log("Excluding job "$Job.FriendlyName$" due to global alert level green");
+		//`log("Excluding job "$Job.FriendlyName$" due to global alert level green");
 		return false;
 	}
 
 	if (Job.EncounterID != '' && Job.EncounterID != Group.EncounterID)
 	{
-		`log("Excluding job "$Job.FriendlyName$" due to encounter ID requirement");
+		//`log("Excluding job "$Job.FriendlyName$" due to encounter ID requirement");
 		return false;
 	}
 
@@ -639,7 +639,7 @@ function bool PodJobIsValidForPod(PodJob Job, XComGameState_AIGroup Group)
 		Roll = `SYNC_FRAND();
 		if (Roll > Job.RandomChance)
 		{
-			`Log("Excluding job "$Job.FriendlyName$" due to random chance failure: Rolled " $ Roll $ " of " $ Job.RandomChance );
+			//`Log("Excluding job "$Job.FriendlyName$" due to random chance failure: Rolled " $ Roll $ " of " $ Job.RandomChance );
 			return false;
 		}
 	}
@@ -718,7 +718,7 @@ function XComGameState_LWPodJob InitializeJob(Name JobName, int JobID, XComGameS
 		`AIJOBMGR.bJobListDirty = true;
 	}
 
-	`Log("Assigned job " $ MissionJobs[JobID].FriendlyName $ " - " $ JobObj.GetMyTemplateName() $ " to group " $ Group.ObjectID);
+	//`Log("Assigned job " $ MissionJobs[JobID].FriendlyName $ " - " $ JobObj.GetMyTemplateName() $ " to group " $ Group.ObjectID);
 	return JobObj;
 }
 
@@ -731,7 +731,7 @@ function GetFilteredJobListForMission(out array<PodJob> JobList)
 		// Skip any job on cooldown.
 		if (Cooldowns.Find('ID', i) != -1)
 		{
-			`Log("Excluding job "$MissionJobs[i].FriendlyName$" due to cooldown");
+			//`Log("Excluding job "$MissionJobs[i].FriendlyName$" due to cooldown");
 			continue;
 		}
 
@@ -789,7 +789,7 @@ function AssignPodJobs(XComGameState_AIPlayerData AIPlayerData, array<StateObjec
 	// If we have no valid jobs to assign, we're done.
 	if (JobList.Length == 0)
 	{
-		`Log("No valid jobs for mission");
+		//`Log("No valid jobs for mission");
 		return;
 	}
 

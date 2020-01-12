@@ -1,48 +1,6 @@
 // This is an Unreal Script
 class YellowAlert_XGAIBehavior extends XGAIBehavior;
 
-//Need to add ETeam one and two to possible enemies
-function UpdateSightRange()
-{
-    local array<XComGameState_Unit> XComList;
-    local XComGameState_Unit EnemyState;
-    local float VisRadius;
-    VisRadius = UnitState.GetVisibilityRadius();
-    m_fSightRangeSq = Square(`METERSTOUNITS(VisRadius+3));// Added 3m sight range buffer.
-
-    bSameVisibilityRangeAsEnemies = true;
-    if ( UnitState.GetTeam() == eTeam_Alien )
-    {
-        GetAllKnownEnemyStates(XComList);
-        foreach XComList(EnemyState)
-        {
-            if( (EnemyState.GetTeam() == eTeam_XCom || EnemyState.GetTeam() == eTeam_Resistance || 
-			EnemyState.GetTeam() == eTeam_One || EnemyState.GetTeam() == eTeam_Two) && 
-			VisRadius != EnemyState.GetVisibilityRadius() )
-            {
-                bSameVisibilityRangeAsEnemies = false;
-                break;
-            }
-        }
-    }
-}
-
-//A small fix that I thought everyone would appreciate since we have raider factions and resistance now. This fixes the check for flanking.
-function bool HasKnowledgeOfXCom()
-{
-	local array<XComGameState_Unit> KnownEnemies;
-	local XComGameState_Unit EnemyState;
-	GetAllKnownEnemyStates(KnownEnemies);
-	foreach KnownEnemies(EnemyState)
-	{
-		if (EnemyState.GetTeam() != eTeam_TheLost || EnemyState.GetTeam() != eTeam_Neutral)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 //AlertRadius for sound was not implemented (SoundRange info isn't put into alert data). Use alert cause instead.
 function bool BT_AlertDataWasSoundMade()
 {
@@ -147,7 +105,7 @@ state GroupYellowAlertMovement extends YellowAlertMovement
 }
 
 //for debugging alert data
-
+/*
 function BT_UpdateBestAlertData()
 {	
 	local AlertData Data;
@@ -180,6 +138,7 @@ function BT_UpdateBestAlertData()
 		`Log("  -- Best: Unit: NONE\n");
 	}
 }
+*/
 
 // Force unit to end its turn, used for non-active units, and for major failures in AI ability selection.
 simulated function SkipTurn( optional string DebugLogText="" )
@@ -218,6 +177,7 @@ simulated function SkipTurn( optional string DebugLogText="" )
 }
 
 // Force AI traversals to be saved.
+
 function SaveBTTraversals()
 {
 	local int RootIndex;

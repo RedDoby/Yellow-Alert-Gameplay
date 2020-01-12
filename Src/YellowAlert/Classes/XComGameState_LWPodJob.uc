@@ -180,7 +180,7 @@ function Vector SetAlertAtLocation(Vector Location, XComGameState_AIGroup Group,
             AIData = XComGameState_AIUnitData(NewGameState.ModifyStateObject(class'XComGameState_AIUnitData', AIUnitDataID));
             if (AIData.AddAlertData(UnitRef.ObjectID, AlertCause, AlertInfo, NewGameState, AlertTag))
             {
-				`Log(GetFuncName() $ "X: "$AlertInfo.AlertTileLocation.X$" Y: "$AlertInfo.AlertTileLocation.Y$" Z: "$AlertInfo.AlertTileLocation.Z$" for group# "$Group.ObjectID);
+				//`Log(GetFuncName() $ "X: "$AlertInfo.AlertTileLocation.X$" Y: "$AlertInfo.AlertTileLocation.Y$" Z: "$AlertInfo.AlertTileLocation.Z$" for group# "$Group.ObjectID);
             }
             else
             {
@@ -225,7 +225,7 @@ function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState NewGam
 					AIUnitData.m_arrAlertData[AlertIdx].PlayerTurn <= MaxTurn*/)
 				{
 					AIUnitData.m_arrAlertData.Remove(AlertIdx, 1);
-					`Log("Pod Job Manager Removing Throttling and PodJob Alert Data from unit# "$Unit.ObjectID$" on turn "$CurrentTurn);
+					//`Log("Pod Job Manager Removing Throttling and PodJob Alert Data from unit# "$Unit.ObjectID$" on turn "$CurrentTurn);
 					FoundAlertDataToDelete = true;
 				}
 			}

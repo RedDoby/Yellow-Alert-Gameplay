@@ -58,19 +58,19 @@ XGAIPatrolGroup</Description>
     <Content Include="Config\XComLW_PodManager.ini">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Config\XComMissions.ini">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Config\XcomYellowAlert.ini">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Content\DestroyTransmitter_TempAssets.upk">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Mission_Assets.upk">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Content\Obj_Blacksite.umap">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Content\Obj_DestroyObject.umap">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Content\Obj_DestroyTransmitter.umap">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Content\Obj_HackWorkstation.umap">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Content\Obj_NeutralizeFieldCommander.umap">
@@ -79,13 +79,13 @@ XGAIPatrolGroup</Description>
     <Content Include="Content\Obj_NeutralizeTarget.umap">
       <SubType>Content</SubType>
     </Content>
-    <Content Include="Content\Obj_RecoverItem.umap">
-      <SubType>Content</SubType>
-    </Content>
     <Content Include="Content\Obj_RescueVIP.umap">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Content\Obj_SabotageV2.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\PsiTransmitter.upk">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Localization\XComGame.int">

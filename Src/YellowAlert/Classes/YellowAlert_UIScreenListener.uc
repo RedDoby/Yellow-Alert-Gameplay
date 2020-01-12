@@ -17,6 +17,7 @@ var config float COUNTERATTACKMODIFIER;
 const DefensiveReflexAction = 'DefensiveReflexActionPoint_LW';
 const NoReflexActionUnitValue = 'NoReflexAction_LW';
 const NoReinforcementUnitValue = 'NoReinforcementUnitValue';
+const RefundActionUnitValue = 'RefundActionUnitValue';
 
 //create the array used to store seesalertedally units so that we can check existing prior to adding the new alert
 struct AllyAlertData
@@ -134,7 +135,7 @@ function EventListenerReturn OnExplosion(Object EventData, Object EventSource, X
 	//projectiles are grenade launchers - these need to have a radius
 	if((DamageType == 'Explosion' || DamageType == 'DefaultProjectile') && DamageGameState.DamageRadius>0)
 	{
-		`Log("OnExplosion: Damage type is "@DamageType@" and radius is"@Radius);
+		//`Log("OnExplosion: Damage type is "@DamageType@" and radius is"@Radius);
 	}
 	else
 	{
@@ -144,7 +145,7 @@ function EventListenerReturn OnExplosion(Object EventData, Object EventSource, X
 	DamageLocation = DamageGameState.HitLocation;
 	DamageTileLocation = `XWORLD.GetTileCoordinatesFromPosition(DamageLocation);
 	Radius = 28 + (Radius/96);//standard grenades are 30, larger explosions create a larger radius
-	`Log("OnExplosion: Damage tile location found at " $DamageTileLocation.X$","@DamageTileLocation.Y$","@DamageTileLocation.Z);	 
+	//`Log("OnExplosion: Damage tile location found at " $DamageTileLocation.X$","@DamageTileLocation.Y$","@DamageTileLocation.Z);	 
 
 	History = `XCOMHISTORY;
 	
@@ -271,7 +272,7 @@ function EventListenerReturn OnAbilityActivated(Object EventData, Object EventSo
 				// LWS added: Gather the units in sound range of this weapon.
 				class'HelpersYellowAlert'.static.GetUnitsInRange(SoundTileLocation, SoundRange, Enemies);
 
-				`Log("Yellow Alert Weapon sound @ Tile("$SoundTileLocation.X$","@SoundTileLocation.Y$","@SoundTileLocation.Z$") - Found"@Enemies.Length@"enemies in range ("$SoundRange$" meters)");
+				//`Log("Yellow Alert Weapon sound @ Tile("$SoundTileLocation.X$","@SoundTileLocation.Y$","@SoundTileLocation.Z$") - Found"@Enemies.Length@"enemies in range ("$SoundRange$" meters)");
 				foreach Enemies(EnemyRef)
 				{
 					EnemyInSoundRangeUnitState = XComGameState_Unit(History.GetGameStateForObjectID(EnemyRef.ObjectID));
@@ -331,7 +332,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 			(AlertCause == eAC_SeesSpottedUnit && class'HelpersYellowAlert'.static.AISeesAIEnabled()) )
 		{
 			AlertCause = AIGameState.RedAlertCause;
-			`Log("Yellow Alert Gameplay: detected Red Alert caused by "@AlertCause@" to unit #"@AlertedUnit.ObjectID);
+			//`Log("Yellow Alert Gameplay: detected Red Alert caused by "@AlertCause@" to unit #"@AlertedUnit.ObjectID);
 		}
 		else
 		{
@@ -353,7 +354,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 						DamagingUnit = XComGameState_Unit(History.GetGameStateForObjectID(DamagingUnitID));
 						DamagingUnitTeam = DamagingUnit.GetTeam();
 						DamagingUnitGroupID = DamagingUnit.GetGroupMembership().ObjectID;
-						`Log("Yellow Alert Gameplay: found AI to AI "@AIAlertCause@" Alert from team: "@DamagingUnitTeam@", unit #"@DamagingUnitID@" to team: "@AlertedUnitTeam@", unit #"@AlertedUnit.ObjectID);
+						//`Log("Yellow Alert Gameplay: found AI to AI "@AIAlertCause@" Alert from team: "@DamagingUnitTeam@", unit #"@DamagingUnitID@" to team: "@AlertedUnitTeam@", unit #"@AlertedUnit.ObjectID);
 						
 						if(DamagingUnitTeam != eTeam_XCom) //only processing ai to ai damages here
 						{  
@@ -367,7 +368,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 							//}
 							//`TACTICALRULES.SubmitGameState(NewGameState);
 							AIGroupState.InitiateReflexMoveActivate(DamagingUnit, AIAlertCause);
-							`Log("Yellow Alert Gameplay: Activating Ai group on team "@AlertedUnitTeam@", group #"@AIGroupState.ObjectID@" caused by AI team "@DamagingUnitTeam@", group #"@DamagingUnitGroupID);
+							//`Log("Yellow Alert Gameplay: Activating Ai group on team "@AlertedUnitTeam@", group #"@AIGroupState.ObjectID@" caused by AI team "@DamagingUnitTeam@", group #"@DamagingUnitGroupID);
 						}
 						break; //source unit found, end loop
 					}
@@ -450,7 +451,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 	GroupState.GetLivingMembers(LivingMembers);
 	LeaderState = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[0]));
 	LeaderTeam = LeaderState.GetTeam();
-	`Log(GetFuncName() $ ": Processing reflex move for Leader " $ LeaderState.GetMyTemplateName());
+	//`Log(GetFuncName() $ ": Processing reflex move for Leader " $ LeaderState.GetMyTemplateName());
 	PlayerState = XComGameState_Player(History.GetGameStateForObjectID(LeaderState.ControllingPlayer.ObjectID));
 
 	if(!AllowBonusReflexActions)
@@ -475,6 +476,12 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
         `Log(GetFuncName() $ ": Not the "$LeaderTeam$" team's turn: aborting");
         return ELR_NoInterrupt;
     }
+	// Ignore shadow bound units
+	if (Left(string(LeaderState.GetMyTemplateName()), 14) == "ShadowbindUnit")
+	{
+		 `Log(GetFuncName() $ ": ShadowbindUnit: aborting");
+        return ELR_NoInterrupt;
+	}
 
     if (GroupState == none)
     {
@@ -626,6 +633,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			else
 			{
 				Member.ActionPoints.AddItem(class'X2CharacterTemplateManager'.default.StandardActionPoint);  //Refund the AI one action point to use after scamper.
+				Member.SetUnitFloatValue(RefundActionUnitValue, 1, eCleanup_BeginTurn); // Set value to check for event listener OnUnitTookDamage
 				`Log(GetFuncName() $ ": Awarding an extra standard action point to unit# "$ Member.ObjectID $" Total Action points now "$ Member.ActionPoints.length);	
 			}
 			//add one extra BT run for the refunded action point
@@ -699,34 +707,29 @@ function bool IsDarkEvent_CounterattackActive()
 	return false;
 }
 
+// Used to check for units that were injured while scampering
+// these units need to have their standard action point replaced with a defensive one
 static function EventListenerReturn OnUnitTookDamage(Object EventData, Object EventSource, XComGameState GameState, Name InEventID, Object CallbackData)
 {
 	local XComGameState_Unit Unit;
-	local ETeam Team;
 	local XComGameState NewGameState;
-	local Name BTNode;
-	local X2AIBTBehaviorTree BTMgr;
-	local Int Idx;
+	local UnitValue Value;
 
-	BTMgr = `BEHAVIORTREEMGR;
 	Unit = XComGameState_Unit(EventSource);
-	Team = Unit.GetTeam();
-	BTNode = Name(Unit.GetMyTemplate().strBehaviorTree);
-	Idx = BTMgr.ActiveBTQueue.Find('ObjectID', Unit.ObjectID);
 	
-	if (Unit.IsInjured() &&
-		BTMgr.ActiveBTQueue[Idx].bScamperEntry &&
-		BTMgr.ActiveBTQueue[Idx].Node == BTNode && 
+	// If Unit is injured, has been refunded a standard action point and has at least one standard action point remaining
+	// And the unit doesn't already have a defensive AP, then remove one standard action point and replace with a defensive AP
+	Unit.GetUnitValue(RefundActionUnitValue, Value);
+
+ 	if (Unit.IsInjured() && 
+		Value.fValue == 1 && 
 		Unit.ActionPoints.Find(class'X2CharacterTemplateManager'.default.StandardActionPoint) >= 0 &&
-		Team != `TACTICALRULES.GetUnitActionTeam())
+		Unit.ActionPoints.Find(DefensiveReflexAction) == -1)
 	{
 		`Log(GetFuncName() $ ": Replacing reflex action for injured unit# " $ Unit.ObjectID);
-		// This unit has taken damage, is scampering, is using the default BT Node
-		// (Units that had an standard action point refunded should only pass this check), 
-		// and is this unit team's turn. Replace it with a defensive action point.
 		NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState("Replacing reflex action for injured unit");
 		Unit = XComGameState_Unit(NewGameState.ModifyStateObject(class'XComGameState_Unit', Unit.ObjectID));
-		Unit.ActionPoints.RemoveItem(class'X2CharacterTemplateManager'.default.StandardActionPoint);
+		Unit.ActionPoints.Remove(0, 1);
 		Unit.ActionPoints.AddItem(DefensiveReflexAction);
 		`TACTICALRULES.SubmitGameState(NewGameState);
 	}
@@ -796,7 +799,7 @@ function EventListenerReturn CheckSeesAlertedAlliesAlert(Object EventData, Objec
 	AllyUnitsSeen.add(1);
 	AllyUnitsSeen[AlertIndex].AlertUnitID = UnitA.ObjectID;
 	AllyUnitsSeen[AlertIndex].AlertSourceGroupID = UnitBGroupID;
-	`log("Succesfully added seesalertedallies: Alerted Unit:" @UnitA.ObjectID@ "Source Group:" @UnitBGroupID);
+	//`Log("Succesfully added seesalertedallies: Alerted Unit:" @UnitA.ObjectID@ "Source Group:" @UnitBGroupID);
 	Tuple.Data[0].o = UnitA;
 	Tuple.Data[1].o = UnitB;
 	Tuple.Data[2].i = eAC_SeesAlertedAllies;
@@ -1176,7 +1179,7 @@ function EventListenerReturn OnPodJobConverge(Object EventData, Object EventSour
 	return ELR_NoInterrupt;
 }
 
-//Used to create Alert data when alien units spot the evac zone
+//Used by the pod manager to track when alien units spot the evac zone
 static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object EventSource, XComGameState GameState, Name EventID, Object CallbackData)
 {
 	local XComGameState_EvacZone EvacZone;
@@ -1222,7 +1225,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	//No Evac zone active, no need to check further for visuals on Evac Zone
 	if( EvacZone == None )
 	{
-		`Log(GetFuncName()@"failed - No Evac Zone found.");
+		//`Log(GetFuncName()@"failed - No Evac Zone found.");
 		return ELR_NoInterrupt;
 	}
 
@@ -1267,7 +1270,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	{
 		if (PodManager.EvacZoneSpotted && PodManager.EvacZoneLocation == EvacZone.CenterLocation)
 		{
-			`Log(GetFuncName()@"existing data found at this location - aborting");
+			//`Log(GetFuncName()@"existing data found at this location - aborting");
 			return ELR_NoInterrupt;
 		}
 
@@ -1288,7 +1291,7 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 	}
 	else
 	{
-		`Log(GetFuncName()@"Alien unit moved and did not see Evac Zone.");
+		//`Log(GetFuncName()@"Alien unit moved and did not see Evac Zone.");
 	}
 	return ELR_NoInterrupt;
 }

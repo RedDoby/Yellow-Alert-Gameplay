@@ -35,7 +35,7 @@ function RemoveAllAlertsFromGroup(XComGameState_AIGroup Group, XComGameState New
 			{
 				// Clear out all alert data
 				AIUnitData.m_arrAlertData.Length = 0;
-				`Log("Pod Job Manager Removing All Alert Data from unit# "$Unit.ObjectID);
+				//`Log("Pod Job Manager Removing All Alert Data from unit# "$Unit.ObjectID);
 			}
 			else
 			{   
