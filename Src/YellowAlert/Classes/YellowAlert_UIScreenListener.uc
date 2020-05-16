@@ -6,6 +6,7 @@ class YellowAlert_UIScreenListener extends UIScreenListener Config(YellowAlert);
 var config bool EnableAItoAIActivation;
 var config bool AllowBonusReflexActions;
 var config bool bRapidReinforcements;
+var config bool bReinforcementsAlwaysDefend;
 var config bool DisableFirstTurn;
 
 var config float REFLEX_ACTION_CHANCE_YELLOW;
@@ -89,11 +90,6 @@ event OnRemoved(UIScreen screen)
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'OnMissionObjectiveComplete');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'UnitMoveFinished');
 	`XEVENTMGR.UnRegisterFromEvent(ThisObj, 'PodJobConverge');
-}
-
-defaultProperties
-{
-    ScreenClass = UITacticalHUD
 }
 
 static function EventListenerReturn OnDrawDebugLabels(Object EventData, Object EventSource, XComGameState NewGameState, Name InEventID, Object CallbackData)
@@ -332,7 +328,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 			(AlertCause == eAC_SeesSpottedUnit && class'HelpersYellowAlert'.static.AISeesAIEnabled()) )
 		{
 			AlertCause = AIGameState.RedAlertCause;
-			//`Log("Yellow Alert Gameplay: detected Red Alert caused by "@AlertCause@" to unit #"@AlertedUnit.ObjectID);
+			`Log("Yellow Alert Gameplay: detected Red Alert caused by "@AlertCause@" to unit #"@AlertedUnit.ObjectID);
 		}
 		else
 		{
@@ -354,7 +350,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 						DamagingUnit = XComGameState_Unit(History.GetGameStateForObjectID(DamagingUnitID));
 						DamagingUnitTeam = DamagingUnit.GetTeam();
 						DamagingUnitGroupID = DamagingUnit.GetGroupMembership().ObjectID;
-						//`Log("Yellow Alert Gameplay: found AI to AI "@AIAlertCause@" Alert from team: "@DamagingUnitTeam@", unit #"@DamagingUnitID@" to team: "@AlertedUnitTeam@", unit #"@AlertedUnit.ObjectID);
+						`Log("Yellow Alert Gameplay: found AI to AI "@AIAlertCause@" Alert from team: "@DamagingUnitTeam@", unit #"@DamagingUnitID@" to team: "@AlertedUnitTeam@", unit #"@AlertedUnit.ObjectID);
 						
 						if(DamagingUnitTeam != eTeam_XCom) //only processing ai to ai damages here
 						{  
@@ -368,7 +364,7 @@ function EventListenerReturn OnAlertDataTriggerAlertAbility(Object EventData, Ob
 							//}
 							//`TACTICALRULES.SubmitGameState(NewGameState);
 							AIGroupState.InitiateReflexMoveActivate(DamagingUnit, AIAlertCause);
-							//`Log("Yellow Alert Gameplay: Activating Ai group on team "@AlertedUnitTeam@", group #"@AIGroupState.ObjectID@" caused by AI team "@DamagingUnitTeam@", group #"@DamagingUnitGroupID);
+							`Log("Yellow Alert Gameplay: Activating Ai group on team "@AlertedUnitTeam@", group #"@AIGroupState.ObjectID@" caused by AI team "@DamagingUnitTeam@", group #"@DamagingUnitGroupID);
 						}
 						break; //source unit found, end loop
 					}
@@ -428,10 +424,9 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 	local XComGameStateContext_Ability AbilityContext;
 	local XComGameStateHistory History;
 	local X2TacticalGameRuleset Rules;
-	local TTile TurnStartLocation, CurrentLocation;
-	local int j, DistanceMoved;
+	local int j, TilesMoved;
 	local bool IsYellow, IsReinforcementGroup, bFoundMovement;
-    local float Chance, Roll, CharBaseStat, MaxMovementPerAction;
+    local float Chance, Roll, fDistanceMoved, fTileMoveRange;
 	local UnitValue Value/*, ValueX*/;
 	local XComGameState_Player PlayerState;
 
@@ -451,7 +446,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 	GroupState.GetLivingMembers(LivingMembers);
 	LeaderState = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[0]));
 	LeaderTeam = LeaderState.GetTeam();
-	//`Log(GetFuncName() $ ": Processing reflex move for Leader " $ LeaderState.GetMyTemplateName());
+	`Log(GetFuncName() $ ": Processing reflex move for Leader " $ LeaderState.GetMyTemplateName());
 	PlayerState = XComGameState_Player(History.GetGameStateForObjectID(LeaderState.ControllingPlayer.ObjectID));
 
 	if(!AllowBonusReflexActions)
@@ -464,8 +459,8 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 		`Log(GetFuncName() $ ": First turn reflex reactions are disabled: aborting");
 		return ELR_NoInterrupt;
 	}
-	// Add an exeption for the lost and ETeam_One (The Hive)
-	if (LeaderTeam == eTeam_TheLost || LeaderTeam == eTeam_One)
+	// Add an exeption for the lost and ETeam_One (The Hive) and the Chosen
+	if (LeaderTeam == eTeam_TheLost || LeaderTeam == eTeam_One || LeaderState.IsChosen())
 	{
 		`Log(GetFuncName() $ ": The lost and Eteam_One (The Hive) aren't eligible for reflex reactions: aborting");
 		return ELR_NoInterrupt;
@@ -508,6 +503,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			IsReinforcementGroup = true;//Mark this as a reinforcement group
 		}
 	}
+
 	//REMOVING THE RED ALERT CHECK FOR NOW. I DISCOVERED MY FIRST CASE OF UNITS PROCESSING REFLEX MOVE IN YELLOW ALERT
 	//I BELIEVE THE ABOVE CHECK IS SUFFICIENT FOR DETERMINING REINFORCEMENTS
 	//If this NoReinforcementValue is there than that means this is not a reinforcement unit
@@ -538,7 +534,7 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 		PreviousUnit = XComGameState_Unit(History.GetPreviousGameStateForObject(PreviousUnit));
 	}
 
-    IsYellow = PreviousUnit != none && PreviousUnit.GetCurrentStat(eStat_AlertLevel) == 1;
+	IsYellow = PreviousUnit != none && PreviousUnit.GetCurrentStat(eStat_AlertLevel) == 1;
 
     // Did our current pod change? If so reset the number of successful reflex actions we've had so far.
     if (GroupState.ObjectID != LastReflexGroupID)
@@ -569,20 +565,21 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			`Log(GetFuncName() $ ": Skipping unit# "$Member.ObjectID$" because it can't scamper");
 			continue; //skip this unit if it can't scamper
 		}
-		DistanceMoved = 0;
-		CharBaseStat = Member.GetBaseStat(eStat_Mobility);
-		MaxMovementPerAction = CharBaseStat/2;
+		fDistanceMoved = 0;
+
+		fTileMoveRange = `METERSTOTILES(Member.GetCurrentStat(eStat_Mobility));
+
 		If(bFoundMovement)//Measure the distance moved
 		{
 			//measure the distance moved this turn to see how far they moved
-			//If they have moved half or less of their movement stat than they are ellible for a reflex action
-			TurnStartLocation = Member.TurnStartLocation;
-			CurrentLocation = Member.TileLocation;
-			DistanceMoved = class'Helpers'.static.DistanceBetweenTiles(TurnStartLocation, CurrentLocation, false) / 96;
-			`Log(GetFuncName() $ ": Found a Move this turn for Unit#"@Member.ObjectID@", distance moved: " @DistanceMoved@ " tiles.");
-			if(DistanceMoved >= MaxMovementPerAction)
+			//If they have moved less than their movement stat (movement stat is for one action) than they are ellible for a reflex action
+		
+			fDistanceMoved = class'Helpers'.static.DistanceBetweenTiles(Member.TurnStartLocation, Member.TileLocation, false);
+			TilesMoved = `UNITSTOTILES(fDistanceMoved);
+			`Log(GetFuncName() $ ": Found a Move this turn for Unit#"@Member.ObjectID@" "$Member.GetMyTemplateName()$", tiles moved: " @TilesMoved@ " move range in tiles: "@fTileMoveRange);
+			if(TilesMoved >= fTileMoveRange)
 			{
-				`Log(GetFuncName() $ ": Unit has already moved at least "$MaxMovementPerAction$" spaces this turn and won't be eligible for a refunded reflex action point");
+				`Log(GetFuncName() $ ": Unit has already moved at least "$fTileMoveRange$" tiles this turn and won't be eligible for a refunded reflex action point");
 				ResetScamperQue(Member, true, j == 0);
 				continue;//Check next unit
 			}
@@ -600,8 +597,9 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			Chance = REFLEX_ACTION_CHANCE_GREEN;
 		}
 		//Distance Moved modifier 
-		Chance += (MaxMovementPerAction / 2 - DistanceMoved) / (MaxMovementPerAction);//Complicated I know, but it works
-		`Log(GetFuncName() $ ": Adjusting reflex chance due to " $ DistanceMoved $ " tiles moved");
+
+		Chance += (fTileMoveRange / 2 - TilesMoved) / (fTileMoveRange); //Complicated I know, but it works
+		`Log(GetFuncName() $ ": Adjusting reflex chance due to " $ TilesMoved $ " tiles moved");
 
 		if (REFLEX_ACTION_CHANCE_REDUCTION > 0 && NumSuccessfulReflexActions > 0)
 		{
@@ -623,18 +621,19 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			// See the 'DefensiveReflexAbilities' arrays in yellowalert.ini for the list
 			// of abilities that have been modified to allow these action points.
 			//
-			// Damaged units, and units in green (if enabled) get 'defensive' action points. Others get standard action points.
+			// Damaged units, units in green (if enabled), or reinforcements units to defend only (if enabled)
+			// get 'defensive' action points. Others get standard action points.
 			
-			if (Member.IsInjured() || !IsYellow)
+			if (Member.IsInjured() || !IsYellow || (IsReinforcementGroup && bReinforcementsAlwaysDefend))
 			{
 				Member.ActionPoints.AddItem(DefensiveReflexAction); //Give the unit a defensive action point
-				`Log(GetFuncName() $ ": Awarding an extra action Defensive action point to unit#"$ Member.ObjectID $" Total Action points now "$ Member.ActionPoints.length);
+				`Log(GetFuncName() $ ": Awarding an extra action Defensive action point to unit#"$Member.ObjectID$" "$Member.GetMyTemplateName()$" Total Action points now "$ Member.ActionPoints.length);
 			}
 			else
 			{
 				Member.ActionPoints.AddItem(class'X2CharacterTemplateManager'.default.StandardActionPoint);  //Refund the AI one action point to use after scamper.
 				Member.SetUnitFloatValue(RefundActionUnitValue, 1, eCleanup_BeginTurn); // Set value to check for event listener OnUnitTookDamage
-				`Log(GetFuncName() $ ": Awarding an extra standard action point to unit# "$ Member.ObjectID $" Total Action points now "$ Member.ActionPoints.length);	
+				`Log(GetFuncName() $ ": Awarding an extra standard action point to unit# "$ Member.ObjectID $" "$Member.GetMyTemplateName()$" Total Action points now "$ Member.ActionPoints.length);	
 			}
 			//add one extra BT run for the refunded action point
 			//Since we have two action points to use now, let's give them access to the full behaviortree
@@ -1294,5 +1293,10 @@ static function EventListenerReturn CheckEvacZoneAlert(Object EventData, Object 
 		//`Log(GetFuncName()@"Alien unit moved and did not see Evac Zone.");
 	}
 	return ELR_NoInterrupt;
+}
+
+defaultProperties
+{
+    ScreenClass = UITacticalHUD
 }
 

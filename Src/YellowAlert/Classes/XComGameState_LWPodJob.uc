@@ -197,19 +197,19 @@ function RemoveAlertsFromGroup(XComGameState_AIGroup Group, XComGameState NewGam
 {
 	local XComGameStateHistory History;
 	local XComGameState_AIUnitData AIUnitData;
-	local XComGameState_Player PlayerState;
+	//local XComGameState_Player PlayerState;
 	local int AIUnitDataID;
 	local XComGameState_Unit Unit;
 	local array<int> LivingMembers;
-	local int UnitIdx, AlertIdx, CurrentTurn/*, MaxTurn*/;
+	local int UnitIdx, AlertIdx/*, CurrentTurn, MaxTurn*/;
 	local bool FoundAlertDataToDelete;
 
 	History = `XCOMHISTORY;
 	Group.GetLivingMembers(LivingMembers);
 	
 	Unit = XComGameState_Unit(History.GetGameStateForObjectID(LivingMembers[0]));
-	PlayerState = XComGameState_Player(History.GetGameStateForObjectID(Unit.ControllingPlayer.ObjectID));
-	CurrentTurn = PlayerState.PlayerTurnCount;
+	//PlayerState = XComGameState_Player(History.GetGameStateForObjectID(Unit.ControllingPlayer.ObjectID));
+	//CurrentTurn = PlayerState.PlayerTurnCount;
 	//MaxTurn = SkipCurrentTurn ? CurrentTurn-1 : CurrentTurn;
 	for (UnitIdx = 0; UnitIdx < LivingMembers.Length; ++UnitIdx)
 	{
