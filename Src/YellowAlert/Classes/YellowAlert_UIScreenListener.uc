@@ -15,6 +15,7 @@ var config float REFLEX_ACTION_CHANCE_REINFORCEMENT;
 var config float DISTANCE_MOVED_MODIFIER;
 var config float REFLEX_ACTION_CHANCE_REDUCTION;
 var config float COUNTERATTACKMODIFIER;
+const OffensiveReflexAction = 'OffensiveReflexActionPoint_LW';
 const DefensiveReflexAction = 'DefensiveReflexActionPoint_LW';
 const NoReflexActionUnitValue = 'NoReflexAction_LW';
 const NoReinforcementUnitValue = 'NoReinforcementUnitValue';
@@ -626,6 +627,8 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 			
 			if (Member.IsInjured() || !IsYellow || (IsReinforcementGroup && bReinforcementsAlwaysDefend))
 			{
+				Member.ActionPoints.length = 0; // Remove standard action point
+				Member.ActionPoints.AddItem(OffensiveReflexAction); //Give the unit an offensive action point (Note this restricts to standard move only)
 				Member.ActionPoints.AddItem(DefensiveReflexAction); //Give the unit a defensive action point
 				`Log(GetFuncName() $ ": Awarding an extra action Defensive action point to unit#"$Member.ObjectID$" "$Member.GetMyTemplateName()$" Total Action points now "$ Member.ActionPoints.length);
 			}
@@ -635,8 +638,8 @@ function EventListenerReturn RefundActionPoint(Object EventData, Object EventSou
 				Member.SetUnitFloatValue(RefundActionUnitValue, 1, eCleanup_BeginTurn); // Set value to check for event listener OnUnitTookDamage
 				`Log(GetFuncName() $ ": Awarding an extra standard action point to unit# "$ Member.ObjectID $" "$Member.GetMyTemplateName()$" Total Action points now "$ Member.ActionPoints.length);	
 			}
-			//add one extra BT run for the refunded action point
-			//Since we have two action points to use now, let's give them access to the full behaviortree
+			// add one extra BT run for the refunded action point
+			// Since we have two action points to use now, let's give them access to the full behaviortree
 			ResetScamperQue(Member, false, j == 0);
 			++NumSuccessfulReflexActions;
 		}

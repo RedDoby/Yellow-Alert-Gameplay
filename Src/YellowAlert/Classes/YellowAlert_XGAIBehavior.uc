@@ -177,7 +177,7 @@ simulated function SkipTurn( optional string DebugLogText="" )
 }
 
 // Force AI traversals to be saved.
-
+/*
 function SaveBTTraversals()
 {
 	local int RootIndex;
@@ -187,3 +187,4 @@ function SaveBTTraversals()
 	RootIndex = `BEHAVIORTREEMGR.GetNodeIndex(m_kBehaviorTree.m_strName);
 	AddTraversalData(arrStatusList, RootIndex);
 }
+*/

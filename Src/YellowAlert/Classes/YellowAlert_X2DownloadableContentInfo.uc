@@ -80,21 +80,33 @@ static function AddReflexActions()
 		}
 		
 	}
-	/*  Prefer to use standard action point for offensive reactions because of all the new custom enemy types in WOTC
-		It will allow the AI to choose from their own abilities without having to list every one in the .ini
-	foreach default.OffensiveReflexAbilities(AbilityName)
+	// Prefer to use standard action point for offensive reactions because of all the new custom enemy types in WOTC
+	// It will allow the AI to choose from their own abilities without having to list every one in the .ini
+
+	//foreach default.OffensiveReflexAbilities(AbilityName)
+	//{
+		//Template = AbilityManager.FindAbilityTemplate(AbilityName);
+		//if (Template != none)
+		//{
+			//AddReflexActionPoint(Template, class'YellowAlert_UIScreenListener'.const.OffensiveReflexAction);
+		//}
+		//else
+		//{
+		//`Log("Cannot add reflex ability " $ AbilityName $ ": Is not a valid ability");
+		//}
+		//
+	//}
+
+	// Using this for giving units that receive a defensive action to move only for their first AP
+	Template = AbilityManager.FindAbilityTemplate('StandardMove');
+	if (Template != none)
 	{
-		Template = AbilityManager.FindAbilityTemplate(AbilityName);
-		if (Template != none)
-		{
-			AddReflexActionPoint(Template, class'YellowAlert_UIScreenListener'.const.OffensiveReflexAction);
-		}
-		else
-		{
+		AddReflexActionPoint(Template, class'YellowAlert_UIScreenListener'.const.OffensiveReflexAction);
+	}
+	else
+	{
 		`Log("Cannot add reflex ability " $ AbilityName $ ": Is not a valid ability");
-		}
-		
-	}*/
+	}
 }
 
 static function AddReflexActionPoint(X2AbilityTemplate Template, Name ActionPointName)
