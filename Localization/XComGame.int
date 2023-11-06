@@ -1,3 +1,6 @@
 [DarkEvent_Counterattack X2DarkEventTemplate]
 +DisplayName="Improved Reflex Actions"
 +SummaryText="ADVENT training increases their speed, allowing their soldiers a greater chance to receive an extra action when revealed on their turn."
++PreMissionText="ADVENT training increases their speed, allowing their soldiers a greater chance to receive an extra action when revealed on their turn."
++PostMissionSuccessText="Dark Event Countered: Improved Reflex Actions"
++PostMissionFailureText="Failed to Counter Dark Event: Improved Reflex Actions"

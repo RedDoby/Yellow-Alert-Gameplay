@@ -73,16 +73,25 @@ XGAIPatrolGroup</Description>
     <Content Include="Content\Obj_Blacksite.umap">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Content\Obj_DestroyTransmitter.umap">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Content\Obj_NeutralizeFieldCommander.umap">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Content\Obj_NeutralizeTarget.umap">
       <SubType>Content</SubType>
     </Content>
+    <Content Include="Content\Obj_RecoverItem.umap">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Content\Obj_RescueVIP.umap">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Content\Obj_SabotageV2.umap">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Content\Obj_SecureUFO.umap">
       <SubType>Content</SubType>
     </Content>
     <Content Include="Content\PsiTransmitter.upk">
@@ -129,15 +138,6 @@ XGAIPatrolGroup</Description>
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\YellowAlert\Classes\YellowAlert_XGAIBehavior.uc">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Src\YellowAlert\Classes\YellowAlert_XGAIBehavior_Civilian.uc">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Src\YellowAlert\Classes\YellowAlert_AIUnitData.uc">
-      <SubType>Content</SubType>
-    </Content>
-    <Content Include="Src\YellowAlert\Classes\YellowAlert_XGAIPatrolGroup.uc">
       <SubType>Content</SubType>
     </Content>
   </ItemGroup>

@@ -1,6 +1,6 @@
 Yellow Alert Gameplay improves the AI's decision making process for tactical pod movement prior to engagement, providing a more realistic approach to how the AI respond to Xcom's position on the map. All gameplay cheats have been removed. By introducing the pod job manager from LW2 to Yellow Alert Gameplay V2.0, enemy pods will now do more than just run towards the alert like they did in the original version of yellow alert gameplay. The pod manager assigns certain jobs for patrolling pods or groups. The jobs they can take depends on the mission and a variety of other factors. Below is a list of the jobs a patrolling and unengaged pod can be assigned along with a description of each:
 
-REQUIRES the BETA COMMUNITY HIGHLANDER
+REQUIRES the COMMUNITY HIGHLANDER
 
 Pod Jobs
 Pod Jobs are assigned once XCom has broken concealment and at least one enemy pod is in yellow or red alert. Some pods that are in green alert will continue to patrol normally.
@@ -58,7 +58,7 @@ Thanks to the long war 2 mod and LWOTC I was able to borrow most of the code fro
 
 Safe to add or remove mid campaign, but not during tactical.
 
-This version of yellow alert gameplay requires the BETA community highlander which is why I am calling it a beta. I have tested this extensively without any issues. By using the highlander BETA I am able to eliminate several mod class overrides, but unfortunately still have to override a few classes listed below:
+I have tested this extensively without any issues. By using the highlander I am able to eliminate several mod class overrides, but unfortunately still have to override a few classes listed below:
 
 Mod Class Overrides
 XComGameState_AIUnitData

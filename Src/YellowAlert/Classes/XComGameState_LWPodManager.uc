@@ -272,18 +272,20 @@ function UpdateXComPosition()
 	local XComGameStateHistory History;
 	local TTile BestLocation;
 	local int BestTurn, i, AIUnitDataID, CurrentTurnCount;
-	local XComTacticalMissionManager MissionManager;
+	//local XComTacticalMissionManager MissionManager;
 	local XComGameState_BattleData BattleData;
+	local Name MissionName;
 
 	History = `XCOMHISTORY;
 	CurrentTurnCount = class'HelpersYellowAlert'.static.FindPlayer(eTeam_Alien).PlayerTurnCount;
 	// First, check mission family for an Avenger Defense mission.  Those missions need to start out with XCom's position at the avenger
-	// Not the center of the map
+	// Not the center of the map, this only applies when the mission exclusions are removed from XComLW_PodManager.ini
 	if (CurrentTurnCount == 1)
 	{
-		MissionManager = `TACTICALMISSIONMGR;
-		if (MissionManager.ActiveMission.MissionName == 'ChosenAvengerDefense' ||
-			MissionManager.ActiveMission.MissionName == 'AvengerDefense')
+		//MissionManager = `TACTICALMISSIONMGR;
+		MissionName = class'HelpersYellowAlert'.static.CurrentMissionName();
+		if (MissionName == 'ChosenAvengerDefense' ||
+			MissionName == 'AvengerDefense')
 		{
 			PingLocation = `SPAWNMGR.GetCurrentXComLocation();
 			LastKnownXComPosition = PingLocation;
@@ -489,13 +491,16 @@ function int JobSorter(PodJob JobA, PodJob JobB)
 
 function bool PodJobIsValidForMission(PodJob Job)
 {
-	local string MissionFamily;
+	local string MissionFamily, MissionName;
 	local XComGameState_AIPlayerData AIPlayerData;
 
 	MissionFamily = class'HelpersYellowAlert'.static.CurrentMissionFamily();
+	MissionName = string(class'HelpersYellowAlert'.static.CurrentMissionName());
+	//`log("Mission Family:" $MissionFamily);
+	//`log("Mission Name:" $MissionName);
 	AIPlayerData = GetAIPlayerData();
 
-	if (Job.ExcludedMissionFamilies.Find(MissionFamily) != -1)
+	if (Job.ExcludedMissionFamilies.Find(MissionFamily) != -1 || Job.ExcludedMissionFamilies.Find(MissionName) != -1)
 	{
 		//`log("Excluding job "$Job.FriendlyName$" due to mission family exclusion");
 		return false;

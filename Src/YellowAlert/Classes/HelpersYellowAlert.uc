@@ -2,9 +2,13 @@
 class HelpersYellowAlert extends object Config(YellowAlert);
 
 var config const bool EnableAItoAISeesUnitActivation;
+var config array<name> ExcludedMissionNames;
+
+const OffensiveReflexAction = 'OffensiveReflexActionPoint_LW';
+const DefensiveReflexAction = 'DefensiveReflexActionPoint_LW';
 
 // Copied from XComGameState_Unit::GetEnemiesInRange, except will retrieve all units on the alien team within
-// the specified range.
+// the specified range. No longer needed, will be added to highlander
 static function GetUnitsInRange(TTile kLocation, int nMeters, out array<StateObjectReference> OutEnemies)
 {
 	local vector vCenter, vLoc;
@@ -44,7 +48,33 @@ static function GetUnitsInRange(TTile kLocation, int nMeters, out array<StateObj
 //optional config if true then AI can activate other AI on sight
 static function bool AISeesAIEnabled()
 {
+	local name ExcludedMissionName, MissionName;
+	
+	if(!default.EnableAItoAISeesUnitActivation)
+	{
+		return false;
+	}
+
+	MissionName = CurrentMissionName(); 
+	//Look for excluded mission Names
+	foreach Default.ExcludedMissionNames(ExcludedMissionName)
+	{
+		if (MissionName == ExcludedMissionName)
+		{
+			//`Log("Yellow alert "$ExcludedMissionName$" Mission Name Excluded from AI Sight Activations");
+			return false;
+		}
+	}	
+
     return default.EnableAItoAISeesUnitActivation;
+}
+
+function static Name CurrentMissionName()
+{
+    local XComGameState_BattleData BattleData;
+
+	BattleData = XComGameState_BattleData(`XCOMHISTORY.GetSingleGameStateObjectForClass(class'XComGameState_BattleData'));
+	return BattleData.MapData.ActiveMission.MissionName;
 }
 
 function static string CurrentMissionFamily()

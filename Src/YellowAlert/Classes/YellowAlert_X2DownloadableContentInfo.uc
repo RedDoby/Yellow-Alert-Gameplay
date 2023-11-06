@@ -20,9 +20,8 @@ static event OnPreMission(XComGameState StartGameState, XComGameState_MissionSit
 
 static function InitializePodManager(XComGameState StartGameState)
 {
-	local XComGameState_LWPodManager PodManager;
 
-	PodManager = XComGameState_LWPodManager(StartGameState.CreateNewStateObject(class'XComGameState_LWPodManager'));
+	StartGameState.CreateNewStateObject(class'XComGameState_LWPodManager');
 	`Log("Created pod manager");
 }
 
@@ -57,6 +56,7 @@ exec function LWActivatePodJobs()
 static event OnPostTemplatesCreated()
 {
 	AddReflexActions();
+	ModifyYellAbility();
 }
 
 static function AddReflexActions()
@@ -72,7 +72,7 @@ static function AddReflexActions()
 		Template = AbilityManager.FindAbilityTemplate(AbilityName);
 		if (Template != none)
 		{
-			AddReflexActionPoint(Template, class'YellowAlert_UIScreenListener'.const.DefensiveReflexAction);
+			AddReflexActionPoint(Template, class'HelpersYellowAlert'.const.DefensiveReflexAction);
 		}
 		else
 		{
@@ -88,7 +88,7 @@ static function AddReflexActions()
 		//Template = AbilityManager.FindAbilityTemplate(AbilityName);
 		//if (Template != none)
 		//{
-			//AddReflexActionPoint(Template, class'YellowAlert_UIScreenListener'.const.OffensiveReflexAction);
+			//AddReflexActionPoint(Template, class'HelpersYellowAlert'.const.OffensiveReflexAction);
 		//}
 		//else
 		//{
@@ -101,7 +101,7 @@ static function AddReflexActions()
 	Template = AbilityManager.FindAbilityTemplate('StandardMove');
 	if (Template != none)
 	{
-		AddReflexActionPoint(Template, class'YellowAlert_UIScreenListener'.const.OffensiveReflexAction);
+		AddReflexActionPoint(Template, class'HelpersYellowAlert'.const.OffensiveReflexAction);
 	}
 	else
 	{
@@ -127,3 +127,38 @@ static function AddReflexActionPoint(X2AbilityTemplate Template, Name ActionPoin
 
     `Log("Cannot add reflex ability " $ Template.DataName $ ": Has no action point cost");
 }
+
+// Remove the red alert affect from the yell ability since it cause AI units to go into red alert
+static function ModifyYellAbility()
+{
+    local X2AbilityTemplateManager        AbilityMgr;
+    local array<X2AbilityTemplate>        arrTemplate;
+    local int                            i;
+    local X2Effect_YellowAlert              YellowAlertStatus;
+    local X2Effect_PersistentStatChangeRestoreDefault        SightIncrease;
+
+    YellowAlertStatus = new class 'X2Effect_YellowAlert';
+    YellowAlertStatus.BuildPersistentEffect(1,true,true /*Remove on Source Death*/,,eGameRule_PlayerTurnBegin);
+
+    SightIncrease = new class'X2Effect_PersistentStatChangeRestoreDefault';
+    SightIncrease.BuildPersistentEffect(1,true,true,,eGameRule_PlayerTurnBegin);
+    SightIncrease.AddPersistentStatChange(eStat_SightRadius); 
+    SightIncrease.AddPersistentStatChange(eStat_DetectionRadius);
+
+    // Access Ability Template Manager
+    AbilityMgr = class'X2AbilityTemplateManager'.static.GetAbilityTemplateManager();
+
+    // Access Template for all difficulties
+    AbilityMgr.FindAbilityTemplateAllDifficulties('Yell', arrTemplate);
+    for (i = 0; i < arrTemplate.Length; i++)
+    {
+        arrTemplate[i].AbilityMultiTargetEffects.length = 0;
+        `Log("Removing Yell Red Alert effects");
+
+        X2AbilityMultiTarget_Radius(arrTemplate[i].AbilityMultiTargetStyle).fTargetRadius = 27;
+        `LWTrace("Adding Yellow Alert effects to Yell");
+        arrTemplate[i].AbilityMultiTargetEffects.AddItem(YellowAlertStatus);
+        arrTemplate[i].AbilityMultiTargetEffects.AddItem(SightIncrease);
+    }
+}
+	

@@ -105,8 +105,8 @@ state GroupYellowAlertMovement extends YellowAlertMovement
 }
 
 //for debugging alert data
-/*
-function BT_UpdateBestAlertData()
+
+/*function BT_UpdateBestAlertData()
 {	
 	local AlertData Data;
 
@@ -137,17 +137,30 @@ function BT_UpdateBestAlertData()
 	{
 		`Log("  -- Best: Unit: NONE\n");
 	}
-}
-*/
+}*/
+
 
 // Force unit to end its turn, used for non-active units, and for major failures in AI ability selection.
 simulated function SkipTurn( optional string DebugLogText="" )
 {
 	local XComGameStateContext_TacticalGameRule EndTurnContext;
+	local UnitValue OValue, Value;
+
+	// YAG2.0: check to see if the unit has an offensive or defensive refund value, if so then we don't want to skip the unit's turn
+	UnitState.GetUnitValue(class'YellowAlert_UIScreenListener'.const.RefundActionUnitValue, OValue);
+	UnitState.GetUnitValue(class'YellowAlert_UIScreenListener'.const.DefensiveRefundActionUnitValue, Value);
+	// Check to see if unit is still alive and has a reflex action value 
+	// These units are being skipped during reinforcement scamper for some reason
+	if ( UnitState.IsAlive() && Value.fValue == 1 || OValue.fValue == 1)
+	{
+	    `log("Yellow Alert Gameplay preventing scampering unit from skiping turn");
+		return;
+	}
 
 	`logAI("XGAIBehavior::SkipTurn::"$m_kUnit @ self@m_kUnit.ObjectID@ DebugLogText);
 
 	RefreshUnitCache();
+	
 	if (UnitState.NumAllActionPoints() != 0)
 	{
 		// If unrevealed, the entire group skips its turn.  Fixes assert with group movement, after group leader skips its move.
@@ -157,6 +170,7 @@ simulated function SkipTurn( optional string DebugLogText="" )
 		// I haven't seen this group movement assert, although making this change makes me pretty nervous. Hopefully this would
 		// only assert if the unit skips its turn for some reason while it's still unrevealed, so if it's now revealed let the
 		// group continue their turn.
+
 		if( StartedTurnUnrevealed() && UnitState.IsUnrevealedAI() )
 		{
 			SkipGroupTurn();
@@ -170,13 +184,14 @@ simulated function SkipTurn( optional string DebugLogText="" )
 			`CHEATMGR.AIStringsUpdateString(m_kUnit.ObjectID, "SkippedTurn.");
 		}
 	}
+	
 	if (m_kPlayer != None)
 	{
 		m_kPlayer.InvalidateUnitToMove(m_kUnit.ObjectID);
 	}
 }
 
-// Force AI traversals to be saved.
+// Force AI traversals to be saved. For debugging bt tree.
 /*
 function SaveBTTraversals()
 {
